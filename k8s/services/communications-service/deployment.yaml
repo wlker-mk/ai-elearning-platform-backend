@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: communications-service
+  namespace: elearning
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: communications-service
+  template:
+    metadata:
+      labels:
+        app: communications-service
+    spec:
+      containers:
+      - name: communications-service
+        image: elearning/communications-service:latest
+        ports:
+        - containerPort: 8012

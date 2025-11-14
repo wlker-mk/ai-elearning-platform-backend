@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: webinars-service
+  namespace: elearning
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8008
+    targetPort: 8008
+  selector:
+    app: webinars-service

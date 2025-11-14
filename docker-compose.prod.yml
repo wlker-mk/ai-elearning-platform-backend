@@ -1,0 +1,666 @@
+version: '3.8'
+
+networks:
+  elearning-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  elasticsearch_data:
+  rabbitmq_data:
+
+services:
+  postgres:
+    build: ./docker/postgres
+    image: elearning/postgres:15
+    container_name: elearning-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: \${POSTGRES_USER}
+      POSTGRES_PASSWORD: \${POSTGRES_PASSWORD}
+      POSTGRES_DB: elearning
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - elearning-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    build: ./docker/redis
+    image: elearning/redis:7
+    container_name: elearning-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - elearning-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    build: ./docker/rabbitmq
+    image: elearning/rabbitmq:3-management
+    container_name: elearning-rabbitmq
+    restart: always
+    environment:
+      RABBITMQ_DEFAULT_USER: \${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: \${RABBITMQ_PASS}
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - elearning-network
+
+  nginx:
+    build: ./docker/nginx
+    image: elearning/nginx:alpine
+    container_name: elearning-nginx
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - auth-service
+      - user-service
+      - courses-service
+      - quizzes-service
+      - bookings-service
+      - payments-service
+      - notifications-service
+      - webinars-service
+      - gamification-service
+      - chatbot-service
+      - analytics-service
+      - communications-service
+      - search-service
+      - storage-service
+      - security-service
+      - monitoring-service
+      - ai-gateway
+      - cache-service
+      - api-gateway
+      - i18n-service
+      - sponsors-service
+    networks:
+      - elearning-network
+
+  auth-service:
+    build:
+      context: ./microservices/auth-service
+      dockerfile: ../../docker/Dockerfile.microservice
+    image: elearning/auth-service:latest
+    container_name: auth-service
+    restart: always
+    ports:
+      - "8001:8001"
+    environment:
+      - DJANGO_ENV=production
+      - DATABASE_URL=postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@postgres:5432/auth_service_db
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://\${RABBITMQ_USER}:\${RABBITMQ_PASS}@rabbitmq:5672
+      - SECRET_KEY=\${SECRET_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - elearning-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/api/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+  user-service:
+    build:
+      context: ./microservices/user-service
+      dockerfile: ../../docker/Dockerfile.microservice
+    image: elearning/user-service:latest
+    container_name: user-service
+    restart: always
+    ports:
+      - "8002:8002"
+    environment:
+      - DJANGO_ENV=production
+      - DATABASE_URL=postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@postgres:5432/user_service_db
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://\${RABBITMQ_USER}:\${RABBITMQ_PASS}@rabbitmq:5672
+      - SECRET_KEY=\${SECRET_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - elearning-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/api/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+  courses-service:
+    build:
+      context: ./microservices/courses-service
+      dockerfile: ../../docker/Dockerfile.microservice
+    image: elearning/courses-service:latest
+    container_name: courses-service
+    restart: always
+    ports:
+      - "8003:8003"
+    environment:
+      - DJANGO_ENV=production
+      - DATABASE_URL=postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@postgres:5432/courses_service_db
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://\${RABBITMQ_USER}:\${RABBITMQ_PASS}@rabbitmq:5672
+      - SECRET_KEY=\${SECRET_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - elearning-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/api/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+  quizzes-service:
+    build:
+      context: ./microservices/quizzes-service
+      dockerfile: ../../docker/Dockerfile.microservice
+    image: elearning/quizzes-service:latest
+    container_name: quizzes-service
+    restart: always
+    ports:
+      - "8004:8004"
+    environment:
+      - DJANGO_ENV=production
+      - DATABASE_URL=postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@postgres:5432/quizzes_service_db
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://\${RABBITMQ_USER}:\${RABBITMQ_PASS}@rabbitmq:5672
+      - SECRET_KEY=\${SECRET_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - elearning-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8004/api/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+  bookings-service:
+    build:
+      context: ./microservices/bookings-service
+      dockerfile: ../../docker/Dockerfile.microservice
+    image: elearning/bookings-service:latest
+    container_name: bookings-service
+    restart: always
+    ports:
+      - "8005:8005"
+    environment:
+      - DJANGO_ENV=production
+      - DATABASE_URL=postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@postgres:5432/bookings_service_db
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://\${RABBITMQ_USER}:\${RABBITMQ_PASS}@rabbitmq:5672
+      - SECRET_KEY=\${SECRET_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - elearning-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8005/api/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+  payments-service:
+    build:
+      context: ./microservices/payments-service
+      dockerfile: ../../docker/Dockerfile.microservice
+    image: elearning/payments-service:latest
+    container_name: payments-service
+    restart: always
+    ports:
+      - "8006:8006"
+    environment:
+      - DJANGO_ENV=production
+      - DATABASE_URL=postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@postgres:5432/payments_service_db
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://\${RABBITMQ_USER}:\${RABBITMQ_PASS}@rabbitmq:5672
+      - SECRET_KEY=\${SECRET_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - elearning-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8006/api/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+  notifications-service:
+    build:
+      context: ./microservices/notifications-service
+      dockerfile: ../../docker/Dockerfile.microservice
+    image: elearning/notifications-service:latest
+    container_name: notifications-service
+    restart: always
+    ports:
+      - "8007:8007"
+    environment:
+      - DJANGO_ENV=production
+      - DATABASE_URL=postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@postgres:5432/notifications_service_db
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://\${RABBITMQ_USER}:\${RABBITMQ_PASS}@rabbitmq:5672
+      - SECRET_KEY=\${SECRET_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - elearning-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8007/api/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+  webinars-service:
+    build:
+      context: ./microservices/webinars-service
+      dockerfile: ../../docker/Dockerfile.microservice
+    image: elearning/webinars-service:latest
+    container_name: webinars-service
+    restart: always
+    ports:
+      - "8008:8008"
+    environment:
+      - DJANGO_ENV=production
+      - DATABASE_URL=postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@postgres:5432/webinars_service_db
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://\${RABBITMQ_USER}:\${RABBITMQ_PASS}@rabbitmq:5672
+      - SECRET_KEY=\${SECRET_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - elearning-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8008/api/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+  gamification-service:
+    build:
+      context: ./microservices/gamification-service
+      dockerfile: ../../docker/Dockerfile.microservice
+    image: elearning/gamification-service:latest
+    container_name: gamification-service
+    restart: always
+    ports:
+      - "8009:8009"
+    environment:
+      - DJANGO_ENV=production
+      - DATABASE_URL=postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@postgres:5432/gamification_service_db
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://\${RABBITMQ_USER}:\${RABBITMQ_PASS}@rabbitmq:5672
+      - SECRET_KEY=\${SECRET_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - elearning-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8009/api/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+  chatbot-service:
+    build:
+      context: ./microservices/chatbot-service
+      dockerfile: ../../docker/Dockerfile.microservice
+    image: elearning/chatbot-service:latest
+    container_name: chatbot-service
+    restart: always
+    ports:
+      - "8010:8010"
+    environment:
+      - DJANGO_ENV=production
+      - DATABASE_URL=postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@postgres:5432/chatbot_service_db
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://\${RABBITMQ_USER}:\${RABBITMQ_PASS}@rabbitmq:5672
+      - SECRET_KEY=\${SECRET_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - elearning-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8010/api/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+  analytics-service:
+    build:
+      context: ./microservices/analytics-service
+      dockerfile: ../../docker/Dockerfile.microservice
+    image: elearning/analytics-service:latest
+    container_name: analytics-service
+    restart: always
+    ports:
+      - "8011:8011"
+    environment:
+      - DJANGO_ENV=production
+      - DATABASE_URL=postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@postgres:5432/analytics_service_db
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://\${RABBITMQ_USER}:\${RABBITMQ_PASS}@rabbitmq:5672
+      - SECRET_KEY=\${SECRET_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - elearning-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8011/api/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+  communications-service:
+    build:
+      context: ./microservices/communications-service
+      dockerfile: ../../docker/Dockerfile.microservice
+    image: elearning/communications-service:latest
+    container_name: communications-service
+    restart: always
+    ports:
+      - "8012:8012"
+    environment:
+      - DJANGO_ENV=production
+      - DATABASE_URL=postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@postgres:5432/communications_service_db
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://\${RABBITMQ_USER}:\${RABBITMQ_PASS}@rabbitmq:5672
+      - SECRET_KEY=\${SECRET_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - elearning-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8012/api/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+  search-service:
+    build:
+      context: ./microservices/search-service
+      dockerfile: ../../docker/Dockerfile.microservice
+    image: elearning/search-service:latest
+    container_name: search-service
+    restart: always
+    ports:
+      - "8013:8013"
+    environment:
+      - DJANGO_ENV=production
+      - DATABASE_URL=postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@postgres:5432/search_service_db
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://\${RABBITMQ_USER}:\${RABBITMQ_PASS}@rabbitmq:5672
+      - SECRET_KEY=\${SECRET_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - elearning-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8013/api/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+  storage-service:
+    build:
+      context: ./microservices/storage-service
+      dockerfile: ../../docker/Dockerfile.microservice
+    image: elearning/storage-service:latest
+    container_name: storage-service
+    restart: always
+    ports:
+      - "8014:8014"
+    environment:
+      - DJANGO_ENV=production
+      - DATABASE_URL=postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@postgres:5432/storage_service_db
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://\${RABBITMQ_USER}:\${RABBITMQ_PASS}@rabbitmq:5672
+      - SECRET_KEY=\${SECRET_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - elearning-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8014/api/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+  security-service:
+    build:
+      context: ./microservices/security-service
+      dockerfile: ../../docker/Dockerfile.microservice
+    image: elearning/security-service:latest
+    container_name: security-service
+    restart: always
+    ports:
+      - "8015:8015"
+    environment:
+      - DJANGO_ENV=production
+      - DATABASE_URL=postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@postgres:5432/security_service_db
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://\${RABBITMQ_USER}:\${RABBITMQ_PASS}@rabbitmq:5672
+      - SECRET_KEY=\${SECRET_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - elearning-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8015/api/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+  monitoring-service:
+    build:
+      context: ./microservices/monitoring-service
+      dockerfile: ../../docker/Dockerfile.microservice
+    image: elearning/monitoring-service:latest
+    container_name: monitoring-service
+    restart: always
+    ports:
+      - "8016:8016"
+    environment:
+      - DJANGO_ENV=production
+      - DATABASE_URL=postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@postgres:5432/monitoring_service_db
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://\${RABBITMQ_USER}:\${RABBITMQ_PASS}@rabbitmq:5672
+      - SECRET_KEY=\${SECRET_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - elearning-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8016/api/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+  ai-gateway:
+    build:
+      context: ./microservices/ai-gateway
+      dockerfile: ../../docker/Dockerfile.microservice
+    image: elearning/ai-gateway:latest
+    container_name: ai-gateway
+    restart: always
+    ports:
+      - "8017:8017"
+    environment:
+      - DJANGO_ENV=production
+      - DATABASE_URL=postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@postgres:5432/ai_gateway_db
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://\${RABBITMQ_USER}:\${RABBITMQ_PASS}@rabbitmq:5672
+      - SECRET_KEY=\${SECRET_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - elearning-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8017/api/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+  cache-service:
+    build:
+      context: ./microservices/cache-service
+      dockerfile: ../../docker/Dockerfile.microservice
+    image: elearning/cache-service:latest
+    container_name: cache-service
+    restart: always
+    ports:
+      - "8018:8018"
+    environment:
+      - DJANGO_ENV=production
+      - DATABASE_URL=postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@postgres:5432/cache_service_db
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://\${RABBITMQ_USER}:\${RABBITMQ_PASS}@rabbitmq:5672
+      - SECRET_KEY=\${SECRET_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - elearning-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8018/api/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+  api-gateway:
+    build:
+      context: ./microservices/api-gateway
+      dockerfile: ../../docker/Dockerfile.microservice
+    image: elearning/api-gateway:latest
+    container_name: api-gateway
+    restart: always
+    ports:
+      - "8019:8019"
+    environment:
+      - DJANGO_ENV=production
+      - DATABASE_URL=postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@postgres:5432/api_gateway_db
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://\${RABBITMQ_USER}:\${RABBITMQ_PASS}@rabbitmq:5672
+      - SECRET_KEY=\${SECRET_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - elearning-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8019/api/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+  i18n-service:
+    build:
+      context: ./microservices/i18n-service
+      dockerfile: ../../docker/Dockerfile.microservice
+    image: elearning/i18n-service:latest
+    container_name: i18n-service
+    restart: always
+    ports:
+      - "8020:8020"
+    environment:
+      - DJANGO_ENV=production
+      - DATABASE_URL=postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@postgres:5432/i18n_service_db
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://\${RABBITMQ_USER}:\${RABBITMQ_PASS}@rabbitmq:5672
+      - SECRET_KEY=\${SECRET_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - elearning-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8020/api/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+  sponsors-service:
+    build:
+      context: ./microservices/sponsors-service
+      dockerfile: ../../docker/Dockerfile.microservice
+    image: elearning/sponsors-service:latest
+    container_name: sponsors-service
+    restart: always
+    ports:
+      - "8021:8021"
+    environment:
+      - DJANGO_ENV=production
+      - DATABASE_URL=postgresql://\${POSTGRES_USER}:\${POSTGRES_PASSWORD}@postgres:5432/sponsors_service_db
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://\${RABBITMQ_USER}:\${RABBITMQ_PASS}@rabbitmq:5672
+      - SECRET_KEY=\${SECRET_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - elearning-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8021/api/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3

@@ -1,0 +1,150 @@
+generator client {{
+  provider = "prisma-client-py"
+}}
+
+datasource db {{
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}}
+
+enum CourseStatus {
+  DRAFT
+  PENDING_REVIEW
+  IN_REVIEW
+  APPROVED
+  PUBLISHED
+  ARCHIVED
+  REJECTED
+  UNPUBLISHED
+}
+
+enum CourseDifficulty {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  EXPERT
+  ALL_LEVELS
+}
+
+enum CourseType {
+  VIDEO_COURSE
+  TEXT_BASED
+  MIXED
+  LIVE_CLASS
+  WORKSHOP
+  BOOTCAMP
+  CERTIFICATION_PREP
+}
+
+model Course {
+  id                  String         @id @default(uuid())
+  slug                String         @unique
+  title               String
+  subtitle            String?
+  description         String         @db.Text
+  instructorId        String
+  categoryId          String
+  tags                CourseTag[]
+  language            String         @default("ENGLISH")
+  difficulty          CourseDifficulty
+  type                CourseType
+  price               Float
+  isFree              Boolean        @default(false)
+  thumbnailUrl        String?
+  estimatedDuration   Int
+  enrollmentCount     Int            @default(0)
+  completionCount     Int            @default(0)
+  rating              Float?         @default(0)
+  reviewCount         Int            @default(0)
+  publishedAt         DateTime?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  sections            Section[]
+  @@index([slug, instructorId])
+  @@map("courses")
+}
+
+model Section {
+  id              String    @id @default(uuid())
+  courseId        String
+  title           String
+  description     String?   @db.Text
+  order           Int
+  duration        Int       @default(0)
+  lessons         Lesson[]
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  @@index([courseId, order])
+  @@map("sections")
+}
+
+model Lesson {
+  id              String    @id @default(uuid())
+  sectionId       String
+  title           String
+  description     String?   @db.Text
+  content         String?   @db.Text
+  order           Int
+  videoUrl        String?
+  videoDuration   Int?
+  isFree          Boolean   @default(false)
+  resources       Resource[]
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  @@index([sectionId, order])
+  @@map("lessons")
+}
+
+model Resource {
+  id              String    @id @default(uuid())
+  lessonId        String
+  title           String
+  type            String
+  url             String
+  fileSize        Int?
+  isDownloadable  Boolean   @default(true)
+  downloadCount   Int       @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  @@index([lessonId])
+  @@map("resources")
+}
+
+model Category {
+  id              String    @id @default(uuid())
+  name            String    @unique
+  slug            String    @unique
+  description     String?   @db.Text
+  imageUrl        String?
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  @@map("categories")
+}
+
+model Tag {
+  id              String    @id @default(uuid())
+  name            String    @unique
+  slug            String    @unique
+  usageCount      Int       @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  @@map("tags")
+}
+
+model CourseTag {
+  id              String    @id @default(uuid())
+  courseId        String
+  tagId           String
+  @@unique([courseId, tagId])
+  @@map("course_tags")
+}
+
+model Wishlist {
+  id              String    @id @default(uuid())
+  studentId       String
+  courseId        String
+  addedAt         DateTime  @default(now())
+  @@unique([studentId, courseId])
+  @@map("wishlist")
+}

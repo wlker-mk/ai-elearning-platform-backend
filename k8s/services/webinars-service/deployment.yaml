@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webinars-service
+  namespace: elearning
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: webinars-service
+  template:
+    metadata:
+      labels:
+        app: webinars-service
+    spec:
+      containers:
+      - name: webinars-service
+        image: elearning/webinars-service:latest
+        ports:
+        - containerPort: 8008

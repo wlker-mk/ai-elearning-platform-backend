@@ -1,0 +1,455 @@
+version: '3.8'
+
+services:
+  # Infrastructure
+  postgres:
+    image: postgres:15-alpine
+    container_name: elearning-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: elearning
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - elearning-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: elearning-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - elearning-network
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: elearning-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - elearning-network
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: elearning-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    networks:
+      - elearning-network
+
+  nginx:
+    build: ./docker/nginx
+    container_name: elearning-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - auth-service
+      - user-service
+      - courses-service
+      - quizzes-service
+      - bookings-service
+      - payments-service
+      - notifications-service
+      - webinars-service
+      - gamification-service
+      - chatbot-service
+      - analytics-service
+      - communications-service
+      - search-service
+      - storage-service
+      - security-service
+      - monitoring-service
+      - ai-gateway
+      - cache-service
+      - api-gateway
+      - i18n-service
+      - sponsors-service
+    networks:
+      - elearning-network
+
+  # Microservices
+  auth-service:
+    build: ./microservices/auth-service
+    container_name: auth-service
+    ports:
+      - "8001:8001"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/auth_service_db
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    networks:
+      - elearning-network
+    volumes:
+      - ./logs:/app/logs
+  user-service:
+    build: ./microservices/user-service
+    container_name: user-service
+    ports:
+      - "8002:8002"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/user_service_db
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    networks:
+      - elearning-network
+    volumes:
+      - ./logs:/app/logs
+  courses-service:
+    build: ./microservices/courses-service
+    container_name: courses-service
+    ports:
+      - "8003:8003"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/courses_service_db
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    networks:
+      - elearning-network
+    volumes:
+      - ./logs:/app/logs
+  quizzes-service:
+    build: ./microservices/quizzes-service
+    container_name: quizzes-service
+    ports:
+      - "8004:8004"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/quizzes_service_db
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    networks:
+      - elearning-network
+    volumes:
+      - ./logs:/app/logs
+  bookings-service:
+    build: ./microservices/bookings-service
+    container_name: bookings-service
+    ports:
+      - "8005:8005"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/bookings_service_db
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    networks:
+      - elearning-network
+    volumes:
+      - ./logs:/app/logs
+  payments-service:
+    build: ./microservices/payments-service
+    container_name: payments-service
+    ports:
+      - "8006:8006"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/payments_service_db
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    networks:
+      - elearning-network
+    volumes:
+      - ./logs:/app/logs
+  notifications-service:
+    build: ./microservices/notifications-service
+    container_name: notifications-service
+    ports:
+      - "8007:8007"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/notifications_service_db
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    networks:
+      - elearning-network
+    volumes:
+      - ./logs:/app/logs
+  webinars-service:
+    build: ./microservices/webinars-service
+    container_name: webinars-service
+    ports:
+      - "8008:8008"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/webinars_service_db
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    networks:
+      - elearning-network
+    volumes:
+      - ./logs:/app/logs
+  gamification-service:
+    build: ./microservices/gamification-service
+    container_name: gamification-service
+    ports:
+      - "8009:8009"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/gamification_service_db
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    networks:
+      - elearning-network
+    volumes:
+      - ./logs:/app/logs
+  chatbot-service:
+    build: ./microservices/chatbot-service
+    container_name: chatbot-service
+    ports:
+      - "8010:8010"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/chatbot_service_db
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    networks:
+      - elearning-network
+    volumes:
+      - ./logs:/app/logs
+  analytics-service:
+    build: ./microservices/analytics-service
+    container_name: analytics-service
+    ports:
+      - "8011:8011"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/analytics_service_db
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    networks:
+      - elearning-network
+    volumes:
+      - ./logs:/app/logs
+  communications-service:
+    build: ./microservices/communications-service
+    container_name: communications-service
+    ports:
+      - "8012:8012"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/communications_service_db
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    networks:
+      - elearning-network
+    volumes:
+      - ./logs:/app/logs
+  search-service:
+    build: ./microservices/search-service
+    container_name: search-service
+    ports:
+      - "8013:8013"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/search_service_db
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    networks:
+      - elearning-network
+    volumes:
+      - ./logs:/app/logs
+  storage-service:
+    build: ./microservices/storage-service
+    container_name: storage-service
+    ports:
+      - "8014:8014"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/storage_service_db
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    networks:
+      - elearning-network
+    volumes:
+      - ./logs:/app/logs
+  security-service:
+    build: ./microservices/security-service
+    container_name: security-service
+    ports:
+      - "8015:8015"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/security_service_db
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    networks:
+      - elearning-network
+    volumes:
+      - ./logs:/app/logs
+  monitoring-service:
+    build: ./microservices/monitoring-service
+    container_name: monitoring-service
+    ports:
+      - "8016:8016"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/monitoring_service_db
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    networks:
+      - elearning-network
+    volumes:
+      - ./logs:/app/logs
+  ai-gateway:
+    build: ./microservices/ai-gateway
+    container_name: ai-gateway
+    ports:
+      - "8017:8017"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/ai_gateway_db
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    networks:
+      - elearning-network
+    volumes:
+      - ./logs:/app/logs
+  cache-service:
+    build: ./microservices/cache-service
+    container_name: cache-service
+    ports:
+      - "8018:8018"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/cache_service_db
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    networks:
+      - elearning-network
+    volumes:
+      - ./logs:/app/logs
+  api-gateway:
+    build: ./microservices/api-gateway
+    container_name: api-gateway
+    ports:
+      - "8019:8019"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/api_gateway_db
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    networks:
+      - elearning-network
+    volumes:
+      - ./logs:/app/logs
+  i18n-service:
+    build: ./microservices/i18n-service
+    container_name: i18n-service
+    ports:
+      - "8020:8020"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/i18n_service_db
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    networks:
+      - elearning-network
+    volumes:
+      - ./logs:/app/logs
+  sponsors-service:
+    build: ./microservices/sponsors-service
+    container_name: sponsors-service
+    ports:
+      - "8021:8021"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/sponsors_service_db
+      - REDIS_URL=redis://redis:6379
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    networks:
+      - elearning-network
+    volumes:
+      - ./logs:/app/logs
+
+networks:
+  elearning-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  rabbitmq_data:
+  elasticsearch_data:

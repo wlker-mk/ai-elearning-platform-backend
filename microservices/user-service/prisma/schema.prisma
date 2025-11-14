@@ -1,0 +1,118 @@
+generator client {
+  provider             = "prisma-client-py"
+  recursive_type_depth = -1
+  interface           = "asyncio"
+  output              = "/usr/local/lib/python3.11/site-packages/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// USER SERVICE - Profiles, Students, Instructors, Preferences, Country
+
+model UserProfile {
+  id              String    @id @default(uuid())
+  userId          String    @unique
+  firstName       String
+  lastName        String
+  phoneNumber     String?
+  dateOfBirth     DateTime?
+  profileImageUrl String?
+  coverImageUrl   String?
+  bio             String?   @db.Text
+  website         String?
+  linkedin        String?
+  github          String?
+  twitter         String?
+  facebook        String?
+  country         String?
+  city            String?
+  timezone        String    @default("UTC")
+  language        String    @default("en")
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  @@index([userId])
+  @@map("user_profiles")
+}
+
+model Student {
+  id                  String   @id @default(uuid())
+  userId              String   @unique
+  studentCode         String   @unique
+  points              Int      @default(0)
+  level               Int      @default(1)
+  experiencePoints    Int      @default(0)
+  streak              Int      @default(0)
+  maxStreak           Int      @default(0)
+  lastActivityDate    DateTime?
+  totalCoursesEnrolled Int     @default(0)
+  totalCoursesCompleted Int    @default(0)
+  totalLearningTime    Int     @default(0)
+  totalCertificates    Int     @default(0)
+  preferredCategories String[]
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  @@index([studentCode])
+  @@map("students")
+}
+
+model Instructor {
+  id                  String   @id @default(uuid())
+  userId              String   @unique
+  instructorCode      String   @unique
+  title               String?
+  headline            String?
+  specializations     String[]
+  expertise           String[]
+  certifications      String[]
+  yearsOfExperience   Int      @default(0)
+  hourlyRate          Float?
+  rating              Float?   @default(0)
+  totalReviews        Int      @default(0)
+  totalStudents       Int      @default(0)
+  totalCourses        Int      @default(0)
+  isVerified          Boolean  @default(false)
+  verifiedAt          DateTime?
+  bankAccount         String?
+  bankName            String?
+  paypalEmail         String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  @@index([instructorCode, isVerified])
+  @@map("instructors")
+}
+
+model UserPreference {
+  id                  String   @id @default(uuid())
+  userId              String   @unique
+  theme               String   @default("light")
+  language            String   @default("en")
+  timezone            String   @default("UTC")
+  currency            String   @default("USD")
+  emailNotifications  Boolean  @default(true)
+  pushNotifications   Boolean  @default(true)
+  smsNotifications    Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  @@index([userId])
+  @@map("user_preferences")
+}
+
+model Country {
+  id              String    @id @default(uuid())
+  name            String
+  code            String    @unique
+  code3           String    @unique
+  phoneCode       String
+  currency        String
+  currencySymbol  String
+  flag            String?
+  emoji           String?
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  @@index([code])
+  @@map("countries")
+}

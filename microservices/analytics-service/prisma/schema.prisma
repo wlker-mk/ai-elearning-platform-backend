@@ -1,0 +1,114 @@
+// prisma/schema.prisma
+generator client {
+    provider        = "prisma-client-py"
+}
+
+datasource db {
+    provider   = "postgresql"
+    url        = env("DATABASE_URL")
+}
+
+// ==================== ANALYTICS ====================
+model CourseView {
+    id              String    @id @default(uuid())
+    courseId        String
+    
+    // User info
+    userId          String?
+    ipAddress       String?
+    userAgent       String?
+    
+    // Location
+    country         String?
+    city            String?
+    
+    // Referrer
+    referrer        String?
+    source          String?
+    
+    viewedAt        DateTime  @default(now())
+    
+    @@index([courseId, viewedAt])
+    @@index([userId, viewedAt])
+    @@map("course_views")
+}
+
+model VideoAnalytics {
+    id              String    @id @default(uuid())
+    lessonId        String
+    studentId       String
+    
+    // Viewing stats
+    totalWatchTime  Int       @default(0) // seconds
+    completionRate  Float     @default(0)
+    
+    // Engagement
+    pauseCount      Int       @default(0)
+    rewindCount     Int       @default(0)
+    speedChanges    Int       @default(0)
+    
+    // Quality
+    avgQuality      String?
+    
+    lastPosition    Int       @default(0) // seconds
+    
+    createdAt       DateTime  @default(now())
+    updatedAt       DateTime  @updatedAt
+    
+    @@unique([lessonId, studentId])
+    @@index([studentId, lessonId])
+    @@map("video_analytics")
+}
+
+model SearchLog {
+    id              String    @id @default(uuid())
+    query           String
+    
+    userId          String?
+    ipAddress       String?
+    
+    resultsCount    Int       @default(0)
+    clickedResult   String?
+    
+    searchedAt      DateTime  @default(now())
+    
+    @@index([query, searchedAt])
+    @@index([userId, searchedAt])
+    @@map("search_logs")
+}
+
+model UserActivity {
+    id              String    @id @default(uuid())
+    userId          String
+    eventType       String
+    metadata        Json?
+    createdAt       DateTime  @default(now())
+    
+    @@index([userId, eventType, createdAt])
+    @@map("user_activity")
+}
+
+model RevenueReport {
+    id              String    @id @default(uuid())
+    date            DateTime  @db.Date
+    totalRevenue    Float     @default(0)
+    totalOrders     Int       @default(0)
+    createdAt       DateTime  @default(now())
+    
+    @@unique([date])
+    @@map("revenue_reports")
+}
+
+model CourseAnalytics {
+    id              String    @id @default(uuid())
+    courseId        String
+    date            DateTime  @db.Date
+    views           Int       @default(0)
+    enrollments     Int       @default(0)
+    completions     Int       @default(0)
+    avgRating       Float?
+    createdAt       DateTime  @default(now())
+    
+    @@unique([courseId, date])
+    @@map("course_analytics")
+}

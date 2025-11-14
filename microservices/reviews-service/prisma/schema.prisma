@@ -1,0 +1,63 @@
+generator client {
+  provider = "prisma-client-py"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+ 
+// REVIEWS SERVICE - Review, Rating, Report, Analytics
+
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  FLAGGED
+}
+
+model Review {
+  id              String        @id @default(uuid())
+  courseId        String
+  studentId       String
+  rating          Float
+  comment         String?       @db.Text
+  status          ReviewStatus  @default(APPROVED)
+  isFeatured      Boolean       @default(false)
+  likes           Int           @default(0)
+  dislikes        Int           @default(0)
+  reportedCount   Int           @default(0)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  @@unique([courseId, studentId])
+  @@index([courseId, status])
+  @@map("reviews")
+}
+
+model ReviewReport {
+  id              String    @id @default(uuid())
+  reviewId        String
+  reportedBy      String
+  reason          String
+  details         String?   @db.Text
+  resolved        Boolean   @default(false)
+  resolvedAt      DateTime?
+  createdAt       DateTime  @default(now())
+  @@index([reviewId, resolved])
+  @@map("review_reports")
+}
+
+model RatingAnalytics {
+  id              String    @id @default(uuid())
+  courseId        String
+  averageRating   Float     @default(0)
+  totalReviews    Int       @default(0)
+  fiveStars       Int       @default(0)
+  fourStars       Int       @default(0)
+  threeStars      Int       @default(0)
+  twoStars        Int       @default(0)
+  oneStar         Int       @default(0)
+  updatedAt       DateTime  @default(now())
+  @@unique([courseId])
+  @@map("rating_analytics")
+}

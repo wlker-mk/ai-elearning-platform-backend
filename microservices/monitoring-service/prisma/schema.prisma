@@ -1,0 +1,124 @@
+generator client {
+  provider = "prisma-client-py"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// MONITORING SERVICE - ServiceHealth, Metrics, Alerts, Uptime, PerformanceLog, ErrorLog
+
+enum ServiceStatus {
+  HEALTHY
+  DEGRADED
+  DOWN
+  MAINTENANCE
+}
+
+enum AlertSeverity {
+  INFO
+  WARNING
+  ERROR
+  CRITICAL
+}
+
+enum AlertStatus {
+  OPEN
+  ACKNOWLEDGED
+  RESOLVED
+  CLOSED
+}
+
+model ServiceHealth {
+  id              String        @id @default(uuid())
+  serviceName     String        @unique
+  status          ServiceStatus @default(HEALTHY)
+  avgResponseTime Float?
+  p95ResponseTime Float?
+  p99ResponseTime Float?
+  uptime          Float?
+  downtime        Int?
+  requestCount    Int           @default(0)
+  errorCount      Int           @default(0)
+  cpuUsage        Float?
+  memoryUsage     Float?
+  diskUsage       Float?
+  lastCheckAt     DateTime
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  @@map("service_health")
+}
+
+model Metric {
+  id              String    @id @default(uuid())
+  serviceName     String
+  metricName      String
+  value           Float
+  unit            String?
+  labels          Json?
+  timestamp       DateTime  @default(now())
+  @@index([serviceName, metricName, timestamp])
+  @@map("metrics")
+}
+
+model Alert {
+  id              String        @id @default(uuid())
+  title           String
+  description     String        @db.Text
+  severity        AlertSeverity
+  status          AlertStatus   @default(OPEN)
+  serviceName     String?
+  metricName      String?
+  threshold       Float?
+  actualValue     Float?
+  triggeredAt     DateTime      @default(now())
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  @@map("alerts")
+}
+
+model PerformanceLog {
+  id              String    @id @default(uuid())
+  serviceName     String
+  endpoint        String
+  method          String
+  statusCode      Int
+  responseTime    Int
+  userId          String?
+  ipAddress       String?
+  timestamp       DateTime  @default(now())
+  @@index([serviceName, endpoint, timestamp])
+  @@map("performance_logs")
+}
+
+model ErrorLog {
+  id              String    @id @default(uuid())
+  serviceName     String
+  errorType       String
+  errorMessage    String    @db.Text
+  stackTrace      String?
+  endpoint        String?
+  method          String?
+  userId          String?
+  occurrences     Int       @default(1)
+  firstSeenAt     DateTime  @default(now())
+  lastSeenAt      DateTime  @default(now())
+  isResolved      Boolean   @default(false)
+  resolvedAt      DateTime?
+  createdAt       DateTime  @default(now())
+  @@map("error_logs")
+}
+
+model Uptime {
+  id              String    @id @default(uuid())
+  serviceName     String
+  date            DateTime  @db.Date
+  status          ServiceStatus
+  uptimeSeconds   Int       @default(0)
+  downtimeSeconds Int       @default(0)
+  incidentCount   Int       @default(0)
+  createdAt       DateTime  @default(now())
+  @@unique([serviceName, date])
+  @@map("uptime")
+}

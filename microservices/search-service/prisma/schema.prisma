@@ -1,0 +1,33 @@
+generator client {
+  provider = "prisma-client-py"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// SEARCH SERVICE - Index & Tracking metadata
+
+model SearchIndex {
+  id              String    @id @default(uuid())
+  entityType      String
+  entityId        String
+  title           String
+  content         String    @db.Text
+  keywords        String[]
+  language        String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  @@index([entityType, entityId])
+  @@map("search_index")
+}
+
+model SearchTracking {
+  id              String    @id @default(uuid())
+  query           String
+  resultCount     Int
+  latencyMs       Int
+  createdAt       DateTime  @default(now())
+  @@map("search_tracking")
+}

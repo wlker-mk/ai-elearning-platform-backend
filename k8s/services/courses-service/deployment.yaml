@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: courses-service
+  namespace: elearning
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: courses-service
+  template:
+    metadata:
+      labels:
+        app: courses-service
+    spec:
+      containers:
+      - name: courses-service
+        image: elearning/courses-service:latest
+        ports:
+        - containerPort: 8003

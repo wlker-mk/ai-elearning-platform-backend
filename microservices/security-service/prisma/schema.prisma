@@ -1,0 +1,52 @@
+generator client {
+  provider = "prisma-client-py"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// SECURITY SERVICE - SecurityEvents, BlockedIP, AuditLogs
+
+enum SecuritySeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+model SecurityEvent {
+  id              String    @id @default(uuid())
+  serviceName     String
+  eventType       String
+  severity        SecuritySeverity
+  details         Json?
+  ipAddress       String?
+  userId          String?
+  occurredAt      DateTime  @default(now())
+  createdAt       DateTime  @default(now())
+  @@index([serviceName, eventType, occurredAt])
+  @@map("security_events")
+}
+
+model BlockedIP {
+  id              String    @id @default(uuid())
+  ipAddress       String    @unique
+  reason          String?
+  blockedUntil    DateTime?
+  createdAt       DateTime  @default(now())
+  @@map("blocked_ips")
+}
+
+model AuditLog {
+  id              String    @id @default(uuid())
+  actorId         String?
+  action          String
+  resourceType    String
+  resourceId      String
+  details         Json?
+  createdAt       DateTime  @default(now())
+  @@index([actorId, resourceType])
+  @@map("audit_logs")
+}

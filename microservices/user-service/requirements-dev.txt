@@ -1,0 +1,16 @@
+# Development dependencies
+-r requirements.txt
+
+# Additional development tools
+jupyter==1.0.0
+django-silk==4.4.0
+pre-commit==3.5.0
+mypy==1.7.1
+django-stubs==1.16.0
+drf-stubs==0.11.0
+django-coverage-plugin==3.0.0
+coverage==7.3.2
+
+# Database tools
+pgcli==4.0.1
+redis-commander==0.8.0

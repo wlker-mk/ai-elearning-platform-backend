@@ -1,0 +1,89 @@
+generator client {
+  provider = "prisma-client-py"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ENROLLMENT SERVICE - Enrollment, Progress, Certificate, Notes, Bookmarks, StudySession
+
+enum EnrollmentStatus {
+  ACTIVE
+  COMPLETED
+  SUSPENDED
+  EXPIRED
+  CANCELLED
+  IN_PROGRESS
+  PAUSED
+}
+
+model Enrollment {
+  id                  String           @id @default(uuid())
+  studentId           String
+  courseId            String
+  status              EnrollmentStatus @default(ACTIVE)
+  progress            Float            @default(0)
+  isCompleted         Boolean          @default(false)
+  completedAt         DateTime?
+  certificateIssued   Boolean          @default(false)
+  certificateId       String?
+  totalTimeSpent      Int              @default(0)
+  lastAccessedAt      DateTime?
+  purchasePrice       Float?
+  paymentId           String?
+  enrolledAt          DateTime         @default(now())
+  expiresAt           DateTime?
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+  @@unique([studentId, courseId])
+  @@index([studentId, status])
+  @@map("enrollments")
+}
+
+model Progress {
+  id              String    @id @default(uuid())
+  studentId       String
+  lessonId        String
+  courseId        String
+  isCompleted     Boolean   @default(false)
+  percentage      Float     @default(0)
+  timeSpent       Int       @default(0)
+  lastPosition    Int?
+  watchedDuration Int       @default(0)
+  quizScore       Float?
+  quizAttempts    Int       @default(0)
+  notesCount      Int       @default(0)
+  questionsAsked  Int       @default(0)
+  completedAt     DateTime?
+  firstAccessedAt DateTime  @default(now())
+  lastAccessedAt  DateTime  @default(now())
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  @@unique([studentId, lessonId])
+  @@map("progress")
+}
+
+model Certificate {
+  id              String    @id @default(uuid())
+  studentId       String
+  courseId        String
+  enrollmentId    String
+  certificateNumber String  @unique
+  verificationCode String  @unique
+  studentName     String
+  studentEmail    String
+  courseTitle     String
+  completionDate  DateTime
+  issueDate       DateTime  @default(now())
+  score           Float?
+  grade           String?
+  certificateUrl  String
+  isValid         Boolean   @default(true)
+  revokedAt       DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  @@unique([studentId, courseId])
+  @@map("certificates")
+}

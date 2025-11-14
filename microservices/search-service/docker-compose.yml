@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  search-service:
+    build: .
+    ports:
+      - "8013:8013"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@localhost:5432/search_service_db
+      - REDIS_URL=redis://localhost:6379
+    volumes:
+      - .:/app
+    command: python manage.py runserver 0.0.0.0:8013

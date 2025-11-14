@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: i18n-service
+  namespace: elearning
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: i18n-service
+  template:
+    metadata:
+      labels:
+        app: i18n-service
+    spec:
+      containers:
+      - name: i18n-service
+        image: elearning/i18n-service:latest
+        ports:
+        - containerPort: 8020

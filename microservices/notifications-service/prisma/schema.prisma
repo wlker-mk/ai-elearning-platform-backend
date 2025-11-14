@@ -1,0 +1,76 @@
+generator client {
+  provider = "prisma-client-py"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// NOTIFICATIONS SERVICE - Preferences, Templates, Logs, Notifications
+
+enum NotificationChannel {
+  EMAIL
+  PUSH
+  SMS
+  IN_APP
+}
+
+enum NotificationStatus {
+  QUEUED
+  SENT
+  FAILED
+  DELIVERED
+  READ
+}
+
+model NotificationTemplate {
+  id              String    @id @default(uuid())
+  name            String    @unique
+  channel         NotificationChannel
+  subject         String?
+  body            String    @db.Text
+  variables       String[]
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  @@map("notification_templates")
+}
+
+model NotificationPreference {
+  id              String    @id @default(uuid())
+  userId          String    @unique
+  emailEnabled    Boolean   @default(true)
+  pushEnabled     Boolean   @default(true)
+  smsEnabled      Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  @@map("notification_preferences")
+}
+
+model OutgoingNotification {
+  id              String    @id @default(uuid())
+  templateId      String?
+  userId          String?
+  channel         NotificationChannel
+  recipient       String
+  payload         Json?
+  status          NotificationStatus @default(QUEUED)
+  attempts        Int       @default(0)
+  lastAttemptAt   DateTime?
+  sentAt          DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  @@index([userId, status])
+  @@map("outgoing_notifications")
+}
+
+model NotificationLog {
+  id              String    @id @default(uuid())
+  notificationId  String
+  providerResponse Json?
+  providerName    String?
+  createdAt       DateTime  @default(now())
+  @@index([notificationId])
+  @@map("notification_logs")
+}

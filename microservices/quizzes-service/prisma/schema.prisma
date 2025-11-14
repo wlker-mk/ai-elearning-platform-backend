@@ -1,0 +1,92 @@
+generator client {
+  provider = "prisma-client-py"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// QUIZZES SERVICE - Quiz, Question, QuizAttempt, Proctoring
+
+enum QuizType {
+  MULTIPLE_CHOICE
+  TRUE_FALSE
+  SHORT_ANSWER
+  ESSAY
+  CODING
+  MATCHING
+  FILL_BLANK
+}
+
+model Quiz {
+  id              String    @id @default(uuid())
+  lessonId        String
+  courseId        String
+  title           String
+  description     String?   @db.Text
+  duration        Int?
+  passingScore    Float     @default(70)
+  maxAttempts     Int       @default(3)
+  randomizeQuestions Boolean @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  questions       Question[]
+  @@index([lessonId, courseId])
+  @@map("quizzes")
+}
+
+model Question {
+  id              String    @id @default(uuid())
+  quizId          String
+  type            QuizType
+  question        String    @db.Text
+  order           Int
+  points          Float     @default(1)
+  options         Json?
+  correctAnswer   Json?
+  explanation     String?   @db.Text
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  @@index([quizId, order])
+  @@map("questions")
+}
+
+model QuizAttempt {
+  id              String    @id @default(uuid())
+  quizId          String
+  studentId       String
+  attemptNumber   Int
+  score           Float
+  percentage      Float
+  isPassed        Boolean
+  answers         Json
+  startedAt       DateTime
+  submittedAt     DateTime?
+  timeSpent       Int?
+  createdAt       DateTime  @default(now())
+  @@index([quizId, studentId])
+  @@map("quiz_attempts")
+}
+
+model ProctoringSession {
+  id              String    @id @default(uuid())
+  quizAttemptId   String    @unique
+  webcamUrl       String?
+  screenUrl       String?
+  audioUrl        String?
+  faceDetections  Json?
+  suspiciousActivity Json?
+  tabSwitches     Int       @default(0)
+  multipleFaces   Boolean   @default(false)
+  noFaceDetected  Boolean   @default(false)
+  copyPasteDetected Boolean @default(false)
+  flaggedForReview Boolean  @default(false)
+  reviewedBy      String?
+  reviewedAt      DateTime?
+  reviewNotes     String?   @db.Text
+  startedAt       DateTime  @default(now())
+  endedAt         DateTime?
+  @@index([flaggedForReview])
+  @@map("proctoring_sessions")
+}

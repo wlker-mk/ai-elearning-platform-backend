@@ -1,0 +1,158 @@
+generator client {{
+  provider = "prisma-client-py"
+}}
+
+datasource db {{
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
+  CANCELLED
+  DISPUTED
+  EXPIRED
+}
+
+enum PaymentMethod {
+  CREDIT_CARD
+  DEBIT_CARD
+  PAYPAL
+  STRIPE
+  BANK_TRANSFER
+  MOBILE_MONEY
+  CRYPTO
+  APPLE_PAY
+  GOOGLE_PAY
+}
+
+enum SubscriptionType {
+  FREE
+  MONTHLY
+  QUARTERLY
+  SEMI_ANNUAL
+  ANNUAL
+  LIFETIME
+  ENTERPRISE
+  STUDENT
+  TEAM
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED_AMOUNT
+  BUNDLE
+  EARLY_BIRD
+  FLASH_SALE
+}
+
+model Payment {
+  id                  String        @id @default(uuid())
+  studentId           String
+  amount              Float
+  currency            String        @default("USD")
+  method              PaymentMethod
+  status              PaymentStatus @default(PENDING)
+  transactionId       String?       @unique
+  externalReference   String?
+  gatewayResponse     Json?
+  courseId            String?
+  subscriptionId      String?
+  items               Json?
+  description         String?
+  metadata            Json?
+  processingFee       Float         @default(0)
+  platformFee         Float         @default(0)
+  netAmount           Float
+  isRefunded          Boolean       @default(false)
+  refundedAmount      Float?
+  refundedAt          DateTime?
+  paidAt              DateTime?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  @@index([studentId, status])
+  @@map("payments")
+}
+
+model Transaction {
+  id              String        @id @default(uuid())
+  paymentId       String?
+  type            String
+  amount          Float
+  currency        String        @default("USD")
+  status          PaymentStatus
+  fromAccount     String?
+  toAccount       String?
+  gatewayId       String?
+  gatewayResponse Json?
+  createdAt       DateTime      @default(now())
+  @@index([paymentId])
+  @@map("transactions")
+}
+
+model Invoice {
+  id              String        @id @default(uuid())
+  invoiceNumber   String        @unique
+  studentId       String
+  paymentId       String?
+  subtotal        Float
+  tax             Float         @default(0)
+  discount        Float         @default(0)
+  total           Float
+  amountPaid      Float         @default(0)
+  amountDue       Float
+  currency        String        @default("USD")
+  status          PaymentStatus @default(PENDING)
+  items           Json
+  issueDate       DateTime      @default(now())
+  dueDate         DateTime
+  paidAt          DateTime?
+  pdfUrl          String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  @@index([studentId, status])
+  @@index([invoiceNumber])
+  @@map("invoices")
+}
+
+model Subscription {
+  id              String           @id @default(uuid())
+  studentId       String           @unique
+  type            SubscriptionType
+  startDate       DateTime
+  endDate         DateTime
+  trialEndDate    DateTime?
+  isActive        Boolean          @default(true)
+  isCancelled     Boolean          @default(false)
+  cancelledAt     DateTime?
+  price           Float
+  currency        String           @default("USD")
+  autoRenew       Boolean          @default(true)
+  nextBillingDate DateTime?
+  paymentMethod   PaymentMethod
+  lastPaymentId   String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  @@index([isActive, endDate])
+  @@map("subscriptions")
+}
+
+model Discount {
+  id              String        @id @default(uuid())
+  code            String        @unique
+  type            DiscountType
+  value           Float
+  startDate       DateTime
+  endDate         DateTime
+  maxUses         Int?
+  usesCount       Int           @default(0)
+  maxUsesPerUser  Int?          @default(1)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  @@index([code])
+  @@map("discounts")
+}

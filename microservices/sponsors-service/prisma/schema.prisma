@@ -1,0 +1,55 @@
+generator client {
+  provider = "prisma-client-py"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// SPONSORS SERVICE - Sponsors, Campaigns, Sponsorships, Ads
+
+model Sponsor {
+  id              String    @id @default(uuid())
+  name            String
+  website         String?
+  logoUrl         String?
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  @@map("sponsors")
+}
+
+model Campaign {
+  id              String    @id @default(uuid())
+  sponsorId       String
+  name            String
+  startDate       DateTime
+  endDate         DateTime
+  budget          Float?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  @@map("campaigns")
+}
+
+model Sponsorship {
+  id              String    @id @default(uuid())
+  sponsorId       String
+  entityType      String
+  entityId        String
+  startDate       DateTime
+  endDate         DateTime
+  createdAt       DateTime  @default(now())
+  @@map("sponsorships")
+}
+
+model Ad {
+  id              String    @id @default(uuid())
+  campaignId      String
+  creativeUrl     String
+  destinationUrl  String
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  @@map("ads")
+}

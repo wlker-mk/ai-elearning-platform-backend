@@ -1,0 +1,113 @@
+generator client {
+  provider = "prisma-client-py"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// STORAGE SERVICE - File, Upload, MediaAsset, Quota, CDNCache, VideoProcessing
+
+enum FileType {
+  VIDEO
+  IMAGE
+  DOCUMENT
+  AUDIO
+  ARCHIVE
+  CODE
+  DATASET
+  OTHER
+}
+
+enum StorageProvider {
+  AWS_S3
+  AZURE_BLOB
+  GOOGLE_CLOUD
+  LOCAL
+  CLOUDINARY
+}
+
+enum ProcessingStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model File {
+  id              String          @id @default(uuid())
+  userId          String
+  filename        String
+  originalName    String
+  mimeType        String
+  fileType        FileType
+  fileSize        Int
+  provider        StorageProvider
+  storageKey      String          @unique
+  bucket          String?
+  url             String
+  cdnUrl          String?
+  width           Int?
+  height          Int?
+  duration        Int?
+  status          ProcessingStatus @default(COMPLETED)
+  thumbnailUrl    String?
+  isPublic        Boolean         @default(false)
+  downloadCount   Int             @default(0)
+  viewCount       Int             @default(0)
+  relatedEntity   String?
+  relatedEntityId String?
+  expiresAt       DateTime?
+  uploadedAt      DateTime        @default(now())
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  deletedAt       DateTime?
+  @@index([userId, fileType])
+  @@map("files")
+}
+
+model Upload {
+  id              String          @id @default(uuid())
+  userId          String
+  sessionId       String          @unique
+  filename        String
+  fileSize        Int
+  mimeType        String
+  uploadId        String?
+  parts           Json?
+  bytesUploaded   Int             @default(0)
+  progress        Float           @default(0)
+  status          ProcessingStatus @default(PENDING)
+  fileId          String?
+  errorMessage    String?
+  startedAt       DateTime        @default(now())
+  completedAt     DateTime?
+  expiresAt       DateTime?
+  createdAt       DateTime      @default(now())
+  @@index([userId, status])
+  @@map("uploads")
+}
+
+model MediaAsset {
+  id              String    @id @default(uuid())
+  fileId          String    @unique
+  originalUrl     String
+  originalSize    Int
+  thumbnailUrl    String?
+  smallUrl        String?
+  mediumUrl       String?
+  largeUrl        String?
+  videoFormats    Json?
+  streamUrl       String?
+  imageFormats    Json?
+  isProcessed     Boolean   @default(false)
+  processingStarted DateTime?
+  processingCompleted DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  @@index([fileId])
+  @@map("media_assets")
+}
+
+def schema_storage_tail(): pass

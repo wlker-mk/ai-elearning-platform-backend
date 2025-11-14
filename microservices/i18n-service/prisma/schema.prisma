@@ -1,0 +1,43 @@
+generator client {
+  provider = "prisma-client-py"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// I18N SERVICE - Languages, Translations, LocaleData
+
+model Language {
+  id              String    @id @default(uuid())
+  code            String    @unique
+  name            String
+  nativeName      String?
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  @@map("languages")
+}
+
+model Translation {
+  id              String    @id @default(uuid())
+  key             String
+  languageCode    String
+  value           String    @db.Text
+  context         String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  @@unique([key, languageCode])
+  @@map("translations")
+}
+
+model LocaleData {
+  id              String    @id @default(uuid())
+  languageCode    String
+  timezone        String
+  dateFormat      String
+  numberFormat    String
+  createdAt       DateTime  @default(now())
+  @@map("locale_data")
+}

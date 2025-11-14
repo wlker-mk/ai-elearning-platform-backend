@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  api-gateway:
+    build: .
+    ports:
+      - "8019:8019"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@localhost:5432/api_gateway_db
+      - REDIS_URL=redis://localhost:6379
+    volumes:
+      - .:/app
+    command: python manage.py runserver 0.0.0.0:8019

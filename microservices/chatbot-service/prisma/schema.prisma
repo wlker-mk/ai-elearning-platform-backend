@@ -1,0 +1,98 @@
+generator client {
+  provider = "prisma-client-py"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// CHATBOT SERVICE - Conversations, Intents, Entities, KnowledgeBase
+
+enum ConversationStatus {
+  ACTIVE
+  RESOLVED
+  ESCALATED
+  CLOSED
+}
+
+enum MessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
+}
+
+model Conversation {
+  id              String    @id @default(uuid())
+  userId          String
+  status          ConversationStatus @default(ACTIVE)
+  courseId        String?
+  lessonId        String?
+  primaryIntent   String?
+  sentiment       Float?
+  isResolved      Boolean   @default(false)
+  resolvedAt      DateTime?
+  startedAt       DateTime  @default(now())
+  lastMessageAt   DateTime  @default(now())
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  messages        ChatMessage[]
+  @@index([userId, status])
+  @@map("conversations")
+}
+
+model ChatMessage {
+  id              String    @id @default(uuid())
+  conversationId  String
+  role            MessageRole
+  content         String    @db.Text
+  model           String?
+  tokens          Int?
+  detectedIntent  String?
+  confidence      Float?
+  entities        Json?
+  wasHelpful      Boolean?
+  createdAt       DateTime  @default(now())
+  @@index([conversationId, createdAt])
+  @@map("chat_messages")
+}
+
+model Intent {
+  id              String    @id @default(uuid())
+  name            String    @unique
+  type            String
+  description     String?   @db.Text
+  trainingPhrases String[]
+  responses       String[]
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  @@map("intents")
+}
+
+model Entity {
+  id              String    @id @default(uuid())
+  name            String
+  entityType      String
+  values          Json
+  synonyms        Json?
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  @@map("entities")
+}
+
+model KnowledgeBase {
+  id              String    @id @default(uuid())
+  question        String    @db.Text
+  answer          String    @db.Text
+  category        String?
+  tags            String[]
+  keywords        String[]
+  viewCount       Int       @default(0)
+  helpfulCount    Int       @default(0)
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  @@map("knowledge_base")
+}

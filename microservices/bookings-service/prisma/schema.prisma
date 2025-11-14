@@ -1,0 +1,114 @@
+generator client {
+  provider = "prisma-client-py"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// BOOKINGS SERVICE - Booking, Meeting, Availability
+
+enum MeetingType {
+  ONE_ON_ONE
+  GROUP_SESSION
+  WEBINAR
+  OFFICE_HOURS
+  WORKSHOP
+  MENTORING
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+  RESCHEDULED
+}
+
+model Booking {
+  id              String        @id @default(uuid())
+  studentId       String
+  instructorId    String
+  title           String
+  description     String?       @db.Text
+  type            MeetingType
+  scheduledAt     DateTime
+  duration        Int
+  timezone        String
+  status          BookingStatus @default(PENDING)
+  meetingUrl      String?
+  meetingId       String?
+  password        String?
+  cancelledBy     String?
+  cancelReason    String?
+  cancelledAt     DateTime?
+  rescheduledFrom String?
+  rescheduledTo   String?
+  price           Float?
+  isPaid          Boolean       @default(false)
+  paymentId       String?
+  studentNotes    String?       @db.Text
+  instructorNotes String?       @db.Text
+  remindersSent   Json?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  @@index([studentId, instructorId, scheduledAt])
+  @@map("bookings")
+}
+
+model Meeting {
+  id              String      @id @default(uuid())
+  bookingId       String?     @unique
+  instructorId    String
+  title           String
+  description     String?     @db.Text
+  type            MeetingType
+  scheduledAt     DateTime
+  duration        Int
+  meetingUrl      String?
+  meetingId       String?
+  platform        String?
+  isRecorded      Boolean     @default(false)
+  recordingUrl    String?
+  maxParticipants Int?        @default(1)
+  participants    Json?
+  startedAt       DateTime?
+  endedAt         DateTime?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  @@index([instructorId, scheduledAt])
+  @@map("meetings")
+}
+
+model InstructorAvailability {
+  id              String     @id @default(uuid())
+  instructorId    String
+  dayOfWeek       Int        // 0-6
+  startTime       String
+  endTime         String
+  isRecurring     Boolean    @default(true)
+  effectiveFrom   DateTime?
+  effectiveUntil  DateTime?
+  specificDate    DateTime?
+  isActive        Boolean    @default(true)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime  @updatedAt
+  @@index([instructorId, dayOfWeek])
+  @@map("instructor_availability")
+}
+
+model TimeSlot {
+  id              String     @id @default(uuid())
+  instructorId    String
+  date            DateTime   @db.Date
+  startTime       String
+  endTime         String
+  isAvailable     Boolean    @default(true)
+  isBooked        Boolean    @default(false)
+  bookingId       String?
+  createdAt       DateTime   @default(now())
+  @@unique([instructorId, date, startTime])
+  @@map("time_slots")
+}

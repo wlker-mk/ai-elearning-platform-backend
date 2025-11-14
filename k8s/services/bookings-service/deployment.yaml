@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bookings-service
+  namespace: elearning
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: bookings-service
+  template:
+    metadata:
+      labels:
+        app: bookings-service
+    spec:
+      containers:
+      - name: bookings-service
+        image: elearning/bookings-service:latest
+        ports:
+        - containerPort: 8005

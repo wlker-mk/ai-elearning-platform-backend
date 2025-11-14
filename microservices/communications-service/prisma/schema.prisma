@@ -1,0 +1,40 @@
+generator client {
+  provider = "prisma-client-py"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// COMMUNICATIONS SERVICE - Messages, Discussions, Replies
+
+model MessageThread {
+  id              String    @id @default(uuid())
+  subject         String?
+  participants    String[]
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  @@map("message_threads")
+}
+
+model ThreadMessage {
+  id              String    @id @default(uuid())
+  threadId        String
+  senderId        String
+  content         String    @db.Text
+  attachments     String[]
+  createdAt       DateTime  @default(now())
+  @@index([threadId, senderId])
+  @@map("thread_messages")
+}
+
+model Reply {
+  id              String    @id @default(uuid())
+  messageId       String
+  senderId        String
+  content         String    @db.Text
+  createdAt       DateTime  @default(now())
+  @@index([messageId])
+  @@map("replies")
+}

@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: quizzes-service
+  namespace: elearning
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: quizzes-service
+  template:
+    metadata:
+      labels:
+        app: quizzes-service
+    spec:
+      containers:
+      - name: quizzes-service
+        image: elearning/quizzes-service:latest
+        ports:
+        - containerPort: 8004

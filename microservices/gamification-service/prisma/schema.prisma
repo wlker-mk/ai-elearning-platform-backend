@@ -1,0 +1,112 @@
+generator client {
+  provider = "prisma-client-py"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// GAMIFICATION SERVICE - Achievements, Leaderboards, Rewards, Quests
+
+enum BadgeRarity {
+  COMMON
+  RARE
+  EPIC
+  LEGENDARY
+  MYTHIC
+}
+
+model Badge {
+  id              String    @id @default(uuid())
+  name            String    @unique
+  description     String?   @db.Text
+  rarity          BadgeRarity @default(COMMON)
+  imageUrl        String?
+  points          Int       @default(10)
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  @@map("badges")
+}
+
+model StudentBadge {
+  id              String    @id @default(uuid())
+  studentId       String
+  badgeId         String
+  earnedAt        DateTime?
+  createdAt       DateTime  @default(now())
+  @@unique([studentId, badgeId])
+  @@map("student_badges")
+}
+
+model Achievement {
+  id              String    @id @default(uuid())
+  name            String    @unique
+  description     String?   @db.Text
+  points          Int       @default(50)
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  @@map("achievements")
+}
+
+model Leaderboard {
+  id              String    @id @default(uuid())
+  name            String
+  type            String
+  metric          String
+  startDate       DateTime?
+  endDate         DateTime?
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  @@map("leaderboards")
+}
+
+model LeaderboardEntry {
+  id              String    @id @default(uuid())
+  leaderboardId   String
+  studentId       String
+  rank            Int
+  score           Float
+  createdAt       DateTime  @default(now())
+  @@unique([leaderboardId, studentId])
+  @@map("leaderboard_entries")
+}
+
+model Reward {
+  id              String    @id @default(uuid())
+  name            String
+  description     String?   @db.Text
+  type            String
+  pointsCost      Int
+  totalQuantity   Int?
+  remainingQuantity Int?
+  imageUrl        String?
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  @@map("rewards")
+}
+
+model RewardRedemption {
+  id              String    @id @default(uuid())
+  studentId       String
+  rewardId        String
+  pointsSpent     Int
+  isFulfilled     Boolean   @default(false)
+  fulfilledAt     DateTime?
+  createdAt       DateTime  @default(now())
+  @@map("reward_redemptions")
+}
+
+model Quest {
+  id              String    @id @default(uuid())
+  name            String
+  description     String?   @db.Text
+  rewardId        String?
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  @@map("quests")
+}

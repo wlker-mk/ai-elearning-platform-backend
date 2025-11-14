@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  security-service:
+    build: .
+    ports:
+      - "8015:8015"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@localhost:5432/security_service_db
+      - REDIS_URL=redis://localhost:6379
+    volumes:
+      - .:/app
+    command: python manage.py runserver 0.0.0.0:8015
