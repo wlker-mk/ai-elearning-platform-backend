@@ -2,7 +2,6 @@ generator client {
   provider             = "prisma-client-py"
   recursive_type_depth = -1
   interface           = "asyncio"
-  output              = "/usr/local/lib/python3.11/site-packages/prisma"
 }
 
 datasource db {

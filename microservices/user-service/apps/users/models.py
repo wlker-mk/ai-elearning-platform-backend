@@ -3,6 +3,7 @@ Django models sont utilisés uniquement pour l'authentification.
 Les données métier sont gérées par Prisma.
 """
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, BaseUserManager
+import uuid
 from django.db import models
 from django.utils import timezone
 
@@ -33,7 +34,15 @@ class UserManager(BaseUserManager):
 class User(AbstractBaseUser, PermissionsMixin):
     """Modèle Django pour l'authentification uniquement"""
     
-    id = models.UUIDField(primary_key=True, editable=False)
+    ROLE_CHOICES = [
+        ('student', 'Student'),
+        ('instructor', 'Instructor'),
+        ('admin', 'Admin'),
+    ]
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='student')
+    
+    
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     email = models.EmailField(unique=True, max_length=255)
     username = models.CharField(unique=True, max_length=150)
     is_active = models.BooleanField(default=True)
@@ -55,3 +64,46 @@ class User(AbstractBaseUser, PermissionsMixin):
     
     def __str__(self):
         return self.email
+    
+    def is_account_locked(self):
+        """Vérifier si le compte est verrouillé"""
+        if self.account_locked_until:
+            return timezone.now() < self.account_locked_until
+        return False
+    
+    def lock_account(self, duration_minutes=15):
+        """Verrouiller le compte temporairement"""
+        from datetime import timedelta
+        self.account_locked_until = timezone.now() + timedelta(minutes=duration_minutes)
+        self.save()
+    
+    def unlock_account(self):
+        """Déverrouiller le compte"""
+        self.account_locked_until = None
+        self.failed_login_attempts = 0
+        self.save()
+    
+    def record_failed_login(self, max_attempts=5, lock_duration=15):
+        """Enregistrer une tentative de connexion échouée"""
+        self.failed_login_attempts += 1
+        if self.failed_login_attempts >= max_attempts:
+            self.lock_account(lock_duration)
+        self.save()
+    
+    def record_successful_login(self):
+        """Enregistrer une connexion réussie"""
+        self.failed_login_attempts = 0
+        self.last_login = timezone.now()
+        self.save()
+    
+    @property
+    def is_student(self):
+        return self.role == 'student'
+    
+    @property
+    def is_instructor(self):
+        return self.role == 'instructor'
+    
+    @property
+    def is_admin(self):
+        return self.role == 'admin'

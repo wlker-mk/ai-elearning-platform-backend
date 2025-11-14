@@ -1,26 +1,47 @@
 #!/bin/bash
 set -e
 
-echo "🚀 Starting auth-service..."
+echo "🔐 Starting Auth Service..."
+
+# Create logs directory
+mkdir -p /app/logs
 
 # Wait for PostgreSQL
 echo "⏳ Waiting for PostgreSQL..."
-while ! pg_isready -h postgres -p 5432 > /dev/null 2> /dev/null; do
-    echo "Waiting for PostgreSQL..."
-    sleep 1
+POSTGRES_HOST="${POSTGRES_HOST:-auth-postgres}"
+POSTGRES_USER="${POSTGRES_USER:-postgres}"
+POSTGRES_DB="${POSTGRES_DB:-auth_db}"
+POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-rene}"
+
+until PGPASSWORD="$POSTGRES_PASSWORD" psql -h "$POSTGRES_HOST" -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c '\q'; do
+    echo "📊 PostgreSQL not ready yet..."
+    sleep 2
 done
+echo "✅ PostgreSQL is available"
 
-echo "✅ PostgreSQL is ready!"
+# Apply Prisma migrations if schema exists
+if [ -f "prisma/schema.prisma" ]; then
+    echo "📦 Generating Prisma client..."
+    prisma generate
+    
+    echo "🔄 Applying Prisma migrations..."
+    prisma migrate deploy
+    
+    # Seed if necessary
+    if [ -f "prisma/seed.py" ] && [ "$RUN_SEED" = "true" ]; then
+        echo "🌱 Running seeding..."
+        python prisma/seed.py
+    fi
+fi
 
-echo "🔄 Generating Prisma Client..."
-prisma generate
+# Apply Django migrations
+echo "📋 Applying Django migrations..."
+python manage.py migrate
 
-echo "🔄 Running Prisma migrations..."
-prisma migrate deploy
+# Collect static files
+echo "📁 Collecting static files..."
+python manage.py collectstatic --noinput
 
-echo "🔄 Running Django migrations..."
-python manage.py migrate --noinput
-
-echo "✅ auth-service is ready!"
-
-exec "$@"
+# Start the server
+echo "🎯 Starting Django server on port 8001..."
+exec python manage.py runserver 0.0.0.0:8001
