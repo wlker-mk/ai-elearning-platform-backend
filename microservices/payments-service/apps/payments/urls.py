@@ -6,4 +6,5 @@ urlpatterns = [
     path('payments/', include('apps.payments.payments.urls')),
     path('invoices/', include('apps.payments.billing.urls')),
     path('subscriptions/', include('apps.payments.subscriptions.urls')),
+    path('webhooks/', include('apps.payments.webhooks.urls')),
 ]

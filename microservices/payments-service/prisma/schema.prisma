@@ -1,11 +1,11 @@
-generator client {{
+generator client {
   provider = "prisma-client-py"
-}}
+}
 
-datasource db {{
+datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
-}}
+  url      = env("LOCAL_DATABASE_URL")
+}
 
 enum PaymentStatus {
   PENDING

@@ -23,6 +23,8 @@ services:
     restart: always
     ports:
       - "6381:6379"
+    volumes:
+      - payments_redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -34,6 +36,7 @@ services:
     container_name: payments_service
     volumes:
       - .:/app
+      - payments_logs:/app/logs
     ports:
       - "8003:8003"
     depends_on:
@@ -49,27 +52,68 @@ services:
       POSTGRES_USER: "postgres"
       POSTGRES_PASSWORD: "rene"
       POSTGRES_PORT: "5432"
-      DATABASE_URL: "postgresql://postgres:rene@payments-postgres:5432/payments_db"
+      DATABASE_URL: "postgresql://postgres:rene@localhost:5432/payments_db"
       REDIS_URL: "redis://payments-redis:6379/0"
       CELERY_BROKER_URL: "redis://payments-redis:6379/1"
       CELERY_RESULT_BACKEND: "redis://payments-redis:6379/1"
       ALLOWED_HOSTS: "localhost,127.0.0.1,0.0.0.0,backend,payments-service"
       DJANGO_SETTINGS_MODULE: "config.settings.development"
       LOG_LEVEL: "INFO"
-      STRIPE_SECRET_KEY: "sk_test_votre-cle-stripe-secrete"
-      STRIPE_PUBLISHABLE_KEY: "pk_test_votre-cle-stripe-publique"
+      STRIPE_SECRET_KEY: "${STRIPE_SECRET_KEY:-sk_test_your_key}"
+      STRIPE_PUBLISHABLE_KEY: "${STRIPE_PUBLISHABLE_KEY:-pk_test_your_key}"
+      STRIPE_WEBHOOK_SECRET: "${STRIPE_WEBHOOK_SECRET:-whsec_your_secret}"
+      PAYPAL_CLIENT_ID: "${PAYPAL_CLIENT_ID:-your_client_id}"
+      PAYPAL_CLIENT_SECRET: "${PAYPAL_CLIENT_SECRET:-your_secret}"
+      PAYPAL_MODE: "sandbox"
       DEFAULT_CURRENCY: "USD"
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8003/api/payments/health/ || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://localhost:8006/api/payments/health/ || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
+
+  payments-celery-worker:
+    build: .
+    container_name: payments_celery_worker
+    command: celery -A config worker --loglevel=info --concurrency=4 -Q payments
+    volumes:
+      - .:/app
+      - payments_logs:/app/logs
+    depends_on:
+      - payments-redis
+      - payments-postgres
+      - payments-service
+    environment:
+      DEBUG: "True"
+      SECRET_KEY: "votre-secret-key-payments-service-super-securisee-ici"
+      DATABASE_URL: "postgresql://postgres:rene@localhost:5432/payments_db"
+      REDIS_URL: "redis://payments-redis:6379/0"
+      CELERY_BROKER_URL: "redis://payments-redis:6379/1"
+      CELERY_RESULT_BACKEND: "redis://payments-redis:6379/1"
+      DJANGO_SETTINGS_MODULE: "config.settings.development"
+
+  payments-celery-beat:
+    build: .
+    container_name: payments_celery_beat
+    command: celery -A config beat --loglevel=info
+    volumes:
+      - .:/app
+      - payments_logs:/app/logs
+    depends_on:
+      - payments-redis
+      - payments-postgres
+      - payments-service
+    environment:
+      DEBUG: "True"
+      SECRET_KEY: "votre-secret-key-payments-service-super-securisee-ici"
+      DATABASE_URL: "postgresql://postgres:rene@localhost:5432/payments_db"
+      REDIS_URL: "redis://payments-redis:6379/0"
+      CELERY_BROKER_URL: "redis://payments-redis:6379/1"
+      CELERY_RESULT_BACKEND: "redis://payments-redis:6379/1"
+      DJANGO_SETTINGS_MODULE: "config.settings.development"
 
 volumes:
   payments_postgres_data:
+  payments_redis_data:
+  payments_logs:

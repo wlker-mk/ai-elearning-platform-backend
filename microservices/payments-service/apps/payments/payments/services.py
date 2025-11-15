@@ -1,14 +1,8 @@
-from typing import List, Optional, Dict, Any
-from prisma import Prisma
+"""
+apps/payments/payments/services.py
+Ce module importe le PaymentService depuis gateways.services
+pour maintenir la compatibilité.
+"""
+from apps.payments.gateways.services import PaymentService
 
-class PaymentsService:
-    def __init__(self):
-        self.db = Prisma()
-    
-    async def connect(self):
-        await self.db.connect()
-    
-    async def disconnect(self):
-        await self.db.disconnect()
-    
-    # Add your service methods here
+__all__ = ['PaymentService']

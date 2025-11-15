@@ -19,6 +19,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     
     # Third party
+    'django_celery_beat',
     'rest_framework',
     'corsheaders',
     'django_filters',
