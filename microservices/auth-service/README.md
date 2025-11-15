@@ -333,3 +333,30 @@ await fetch('/api/auth/sessions/', {
 
 MIT
 """
+## Endpoints disponibles :
+# Authentication
+POST   /api/auth/register/
+POST   /api/auth/login/
+POST   /api/auth/login/mfa/
+POST   /api/auth/logout/
+POST   /api/auth/refresh/
+POST   /api/auth/verify-email/
+POST   /api/auth/password/request-reset/
+POST   /api/auth/password/reset/
+POST   /api/auth/password/change/
+GET    /api/auth/me/
+
+# MFA
+POST   /api/auth/mfa/enable/
+POST   /api/auth/mfa/verify/
+POST   /api/auth/mfa/disable/
+POST   /api/auth/mfa/backup-codes/
+
+# Sessions
+GET    /api/auth/sessions/
+DELETE /api/auth/sessions/
+DELETE /api/auth/sessions/{session_id}/
+
+# Login History
+GET    /api/auth/login-history/
+GET    /api/auth/login-statistics/

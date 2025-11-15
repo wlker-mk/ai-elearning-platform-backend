@@ -1,33 +1,37 @@
-# Dockerfile
 FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
+# Variables d'environnement pour Python
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# Installation des dépendances système
+RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     postgresql-client \
     curl \
+    netcat-openbsd \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python dependencies
+# Copie et installation des dépendances Python
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install Prisma
-RUN pip install prisma
-
-# Copy application
+# Copie du code
 COPY . .
 
-# Create logs directory
+# Création des répertoires nécessaires
 RUN mkdir -p /app/logs
 
-# Generate Prisma client
-RUN prisma generate
+# Rendre le script d'entrée exécutable
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
 
-# Expose port
+# Port exposé
 EXPOSE 8011
 
-# Start with simple Python command (plus fiable)
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8011"]
+# Point d'entrée
+ENTRYPOINT ["/docker-entrypoint.sh"]

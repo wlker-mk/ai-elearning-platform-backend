@@ -1,13 +1,75 @@
-version: '3.8'
-
 services:
+  payments-postgres:
+    image: postgres:15
+    container_name: payments_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: rene
+      POSTGRES_DB: payments_db
+    ports:
+      - "5434:5432"
+    volumes:
+      - payments_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d payments_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  payments-redis:
+    image: redis:7-alpine
+    container_name: payments_redis
+    restart: always
+    ports:
+      - "6381:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   payments-service:
     build: .
-    ports:
-      - "8006:8006"
-    environment:
-      - DATABASE_URL=postgresql://postgres:postgres@localhost:5432/payments_service_db
-      - REDIS_URL=redis://localhost:6379
+    container_name: payments_service
     volumes:
       - .:/app
-    command: python manage.py runserver 0.0.0.0:8006
+    ports:
+      - "8003:8003"
+    depends_on:
+      payments-postgres:
+        condition: service_healthy
+      payments-redis:
+        condition: service_healthy
+    environment:
+      DEBUG: "True"
+      SECRET_KEY: "votre-secret-key-payments-service-super-securisee-ici"
+      POSTGRES_HOST: "payments-postgres"
+      POSTGRES_DB: "payments_db"
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "rene"
+      POSTGRES_PORT: "5432"
+      DATABASE_URL: "postgresql://postgres:rene@payments-postgres:5432/payments_db"
+      REDIS_URL: "redis://payments-redis:6379/0"
+      CELERY_BROKER_URL: "redis://payments-redis:6379/1"
+      CELERY_RESULT_BACKEND: "redis://payments-redis:6379/1"
+      ALLOWED_HOSTS: "localhost,127.0.0.1,0.0.0.0,backend,payments-service"
+      DJANGO_SETTINGS_MODULE: "config.settings.development"
+      LOG_LEVEL: "INFO"
+      STRIPE_SECRET_KEY: "sk_test_votre-cle-stripe-secrete"
+      STRIPE_PUBLISHABLE_KEY: "pk_test_votre-cle-stripe-publique"
+      DEFAULT_CURRENCY: "USD"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8003/api/payments/health/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  payments_postgres_data:

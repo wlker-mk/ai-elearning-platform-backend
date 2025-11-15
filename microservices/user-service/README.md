@@ -206,3 +206,25 @@ MIT
 
 Votre équipe de développement
 """
+
+### 📡 Endpoints disponibles :
+```
+# Profils
+GET/POST    /api/users/profiles/me/
+PUT/DELETE  /api/users/profiles/me/
+GET         /api/users/profiles/{user_id}/
+
+# Étudiants
+GET/POST    /api/users/students/me/
+PUT         /api/users/students/me/
+POST        /api/users/students/experience/
+POST        /api/users/students/streak/
+GET         /api/users/students/leaderboard/
+
+# Instructeurs
+GET/POST    /api/users/instructors/me/
+PUT         /api/users/instructors/me/
+GET         /api/users/instructors/{user_id}/
+GET         /api/users/instructors/top/
+GET         /api/users/instructors/search/
+POST/DELETE /api/users/instructors/verify/{user_id}/

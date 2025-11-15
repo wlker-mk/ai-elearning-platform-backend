@@ -1,83 +1,155 @@
+version: '3.8'
+
 services:
   postgres:
-    image: postgres:15
+    image: postgres:15-alpine
     container_name: analytics_postgres
-    restart: always
+    restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: rene
       POSTGRES_DB: analytics_db
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
     ports:
-      - "5432:5432"
+      - "5433:5432"  # Port externe différent pour éviter conflits
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d analytics_db"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    networks:
+      - analytics-network
 
   redis:
     image: redis:7-alpine
     container_name: analytics_redis
-    restart: always
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     ports:
-      - "6379:6379"
+      - "6380:6379"  # Port externe différent
+    volumes:
+      - redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
+      interval: 5s
+      timeout: 3s
       retries: 5
+      start_period: 5s
+    networks:
+      - analytics-network
 
   analytics-service:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: analytics_service
-    volumes:
-      - .:/app
-    ports:
-      - "8011:8011"
+    restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
     environment:
+      # Django
       DEBUG: "True"
-      SECRET_KEY: "django-insecure-change-this-in-production"
+      SECRET_KEY: "django-insecure-change-this-in-production-min-50-chars-long"
+      DJANGO_SETTINGS_MODULE: "config.settings.development"
+      ALLOWED_HOSTS: "localhost,127.0.0.1,0.0.0.0,analytics-service"
+      
+      # PostgreSQL
       POSTGRES_HOST: postgres
       POSTGRES_DB: analytics_db
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: rene
       POSTGRES_PORT: 5432
       DATABASE_URL: "postgresql://postgres:rene@postgres:5432/analytics_db"
+      
+      # Redis & Celery
       REDIS_URL: "redis://redis:6379/0"
-      ALLOWED_HOSTS: "localhost,127.0.0.1,0.0.0.0,backend,analytics-service"
-      DJANGO_SETTINGS_MODULE: "config.settings.development"
-      LOG_LEVEL: "DEBUG"
-    command: >
-      sh -c "
-        mkdir -p /app/logs &&
-        echo 'Waiting for PostgreSQL...' &&
-        until PGPASSWORD=rene psql -h postgres -U postgres -d analytics_db -c '\\q'; do
-          echo 'PostgreSQL not ready yet...';
-          sleep 2;
-        done &&
-        echo 'PostgreSQL is available' &&
-        python manage.py migrate &&
-        echo 'Starting Django server...' &&
-        python manage.py runserver 0.0.0.0:8011
-      "
+      CELERY_BROKER_URL: "redis://redis:6379/1"
+      CELERY_RESULT_BACKEND: "redis://redis:6379/1"
+      
+      # CORS
+      CORS_ALLOWED_ORIGINS: "http://localhost:3000,http://127.0.0.1:3000"
+      
+      # Logging
+      LOG_LEVEL: "INFO"
+      
+      # Seed (optionnel)
+      RUN_SEED: "false"
+      
+      # Auth service
+      AUTH_SERVICE_URL: "http://auth-service:8001"
+    ports:
+      - "8011:8011"
+    volumes:
+      - .:/app
+      - ./logs:/app/logs
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8011/api/health/ || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
-      start_period: 40s
+      start_period: 60s
+    networks:
+      - analytics-network
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
 
+  # Celery Worker (optionnel, décommenter si nécessaire)
+  # celery-worker:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   container_name: analytics_celery_worker
+  #   restart: unless-stopped
+  #   command: celery -A config worker -l info
+  #   depends_on:
+  #     - postgres
+  #     - redis
+  #     - analytics-service
+  #   environment:
+  #     DATABASE_URL: "postgresql://postgres:rene@postgres:5432/analytics_db"
+  #     CELERY_BROKER_URL: "redis://redis:6379/1"
+  #     CELERY_RESULT_BACKEND: "redis://redis:6379/1"
+  #   volumes:
+  #     - .:/app
+  #   networks:
+  #     - analytics-network
+
+  # Celery Beat (optionnel, pour tâches planifiées)
+  # celery-beat:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   container_name: analytics_celery_beat
+  #   restart: unless-stopped
+  #   command: celery -A config beat -l info
+  #   depends_on:
+  #     - postgres
+  #     - redis
+  #     - analytics-service
+  #   environment:
+  #     DATABASE_URL: "postgresql://postgres:rene@postgres:5432/analytics_db"
+  #     CELERY_BROKER_URL: "redis://redis:6379/1"
+  #   volumes:
+  #     - .:/app
+  #   networks:
+  #     - analytics-network
+
 volumes:
   postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  analytics-network:
+    driver: bridge
