@@ -1,4 +1,3 @@
-"""
 # Auth Service - Django + Prisma
 
 Service d'authentification et d'autorisation complet pour une plateforme d'apprentissage.
@@ -7,29 +6,31 @@ Service d'authentification et d'autorisation complet pour une plateforme d'appre
 
 ### 🔐 Authentification
 - **Inscription/Connexion** : Email + mot de passe
-- **Vérification d'email** : Token de vérification
-- **Réinitialisation de mot de passe** : Via email
+- **Vérification d'email** : Token de vérification avec email HTML
+- **Réinitialisation de mot de passe** : Via email avec liens sécurisés
 - **Changement de mot de passe** : Depuis le profil
-- **Sessions sécurisées** : Gestion des sessions avec tokens
+- **Sessions sécurisées** : Gestion des sessions avec tokens Prisma
 - **Refresh tokens** : Prolongation automatique des sessions
 
 ### 🛡️ Sécurité
-- **Hash de mots de passe** : bcrypt avec salt
+- **Hash de mots de passe** : bcrypt avec 12 rounds
 - **Politique de mot de passe** : Minimum 8 caractères, majuscules, minuscules, chiffres, caractères spéciaux
-- **Verrouillage de compte** : Après 5 tentatives échouées
+- **Verrouillage de compte** : Après 5 tentatives échouées (30 min)
 - **Limitation de tentatives** : Protection contre brute force
-- **IP tracking** : Suivi des connexions
-- **User agent tracking** : Détection d'appareils
+- **IP tracking** : Suivi des connexions avec détection de localisation
+- **User agent parsing** : Détection d'appareils et navigateurs
+- **Alertes de sécurité** : Emails pour connexions suspectes
 
 ### 🔒 MFA (Multi-Factor Authentication)
 - **TOTP** : Time-based One-Time Password (Google Authenticator, Authy)
 - **QR Code** : Génération automatique pour configuration
 - **Codes de backup** : 8 codes générés automatiquement
 - **Désactivation sécurisée** : Avec vérification du mot de passe
+- **Notification par email** : Alerte lors de l'activation
 
 ### 📊 Gestion des sessions
 - **Sessions multiples** : Plusieurs appareils simultanés
-- **Visualisation** : Liste de toutes les sessions actives
+- **Visualisation** : Liste de toutes les sessions actives avec détails
 - **Révocation** : Déconnexion d'appareils spécifiques
 - **Révocation globale** : Déconnexion de tous les appareils sauf actuel
 
@@ -49,21 +50,12 @@ Service d'authentification et d'autorisation complet pour une plateforme d'appre
 - CONTENT_REVIEWER
 - SUPPORT
 
-### 🌐 Providers OAuth (prévu)
-- Google
-- GitHub
-- Facebook
-- LinkedIn
-- Microsoft
-- Apple
-- SSO Enterprise
-- SAML
-
 ## 📦 Installation
 
 ### Prérequis
 - Python 3.11+
 - PostgreSQL 15+
+- Redis 7+
 - Node.js 18+ (pour Prisma)
 
 ### Installation locale
@@ -75,7 +67,9 @@ cd auth-service
 
 # 2. Créer un environnement virtuel
 python -m venv venv
-source venv/bin/activate
+source venv/bin/activate  # Linux/Mac
+# ou
+venv\Scripts\activate  # Windows
 
 # 3. Installer les dépendances
 pip install -r requirements.txt
@@ -91,17 +85,57 @@ prisma generate
 prisma migrate deploy
 python manage.py migrate
 
-# 7. Lancer le serveur
-python manage.py runserver 8002
+# 7. Créer les dossiers nécessaires
+mkdir -p logs static media
+
+# 8. Lancer le serveur
+python manage.py runserver 8001
 ```
 
 ### Installation avec Docker
 
 ```bash
+# Démarrer tous les services
 docker-compose up -d
+
+# Voir les logs
+docker-compose logs -f auth-service
+
+# Arrêter les services
+docker-compose down
+
+# Reconstruire après changements
+docker-compose up -d --build
+```
+
+## 🧪 Tests
+
+```bash
+# Installer les dépendances de test
+pip install pytest pytest-django pytest-asyncio pytest-cov
+
+# Lancer tous les tests
+pytest
+
+# Lancer avec couverture
+pytest --cov=apps --cov-report=html
+
+# Lancer des tests spécifiques
+pytest apps/authentication/tests/test_user_service.py
 ```
 
 ## 📚 Documentation API
+
+### Health Check
+
+**GET /api/auth/health/**
+```json
+{
+  "status": "healthy",
+  "service": "auth-service",
+  "version": "1.0.0"
+}
+```
 
 ### Authentication
 
@@ -124,6 +158,9 @@ docker-compose up -d
   "remember_me": true
 }
 ```
+Retourne:
+- `requires_mfa: true` si MFA activé (nécessite `/login/mfa/`)
+- Sinon: `access_token`, `refresh_token`, `user`
 
 **POST /api/auth/login/mfa/**
 ```json
@@ -175,15 +212,18 @@ Nécessite: Bearer Token
   "new_password_confirm": "NewPass123!"
 }
 ```
+Nécessite: Bearer Token
 
 **GET /api/auth/me/**
 Récupère les infos de l'utilisateur connecté
+Nécessite: Bearer Token
 
 ### MFA
 
 **POST /api/auth/mfa/enable/**
 Initie l'activation du MFA
 Retourne: secret, qr_code, backup_codes
+Nécessite: Bearer Token
 
 **POST /api/auth/mfa/verify/**
 ```json
@@ -191,6 +231,7 @@ Retourne: secret, qr_code, backup_codes
   "code": "123456"
 }
 ```
+Nécessite: Bearer Token
 
 **POST /api/auth/mfa/disable/**
 ```json
@@ -198,28 +239,35 @@ Retourne: secret, qr_code, backup_codes
   "password": "YourPassword123!"
 }
 ```
+Nécessite: Bearer Token
 
 **POST /api/auth/mfa/backup-codes/**
 Régénère les codes de backup
+Nécessite: Bearer Token
 
 ### Sessions
 
 **GET /api/auth/sessions/**
 Liste toutes les sessions actives
+Nécessite: Bearer Token
 
 **DELETE /api/auth/sessions/**
 Révoque toutes les sessions sauf la courante
+Nécessite: Bearer Token
 
 **DELETE /api/auth/sessions/{session_id}/**
 Révoque une session spécifique
+Nécessite: Bearer Token
 
 ### Login History
 
 **GET /api/auth/login-history/?limit=50&success_only=true**
 Récupère l'historique de connexion
+Nécessite: Bearer Token
 
 **GET /api/auth/login-statistics/?days=30**
 Récupère les statistiques de connexion
+Nécessite: Bearer Token
 
 ## 🔒 Sécurité
 
@@ -239,13 +287,36 @@ Récupère les statistiques de connexion
 - Durée de session: 24 heures
 - Durée refresh token: 30 jours
 - Révocation automatique des tokens expirés
+- Tracking IP et User-Agent
 
 ### MFA
 - TOTP avec fenêtre de 30 secondes
 - Codes de backup à usage unique
 - 8 codes générés par défaut
+- Email de notification lors de l'activation
 
-## 💡 Cas d'usage
+## 📧 Configuration Email
+
+### Development (Console)
+```env
+EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
+```
+
+### Production (Gmail)
+```env
+EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USE_TLS=True
+EMAIL_HOST_USER=your-email@gmail.com
+EMAIL_HOST_PASSWORD=your-app-password
+DEFAULT_FROM_EMAIL=noreply@yourdomain.com
+```
+
+### Production (SendGrid, Mailgun, etc.)
+Configurez selon votre fournisseur dans `.env`
+
+## 💡 Exemples d'Utilisation
 
 ### 1. Inscription complète
 
@@ -253,6 +324,7 @@ Récupère les statistiques de connexion
 // 1. S'inscrire
 const register = await fetch('/api/auth/register/', {
   method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
     email: 'user@example.com',
     username: 'johndoe',
@@ -264,17 +336,21 @@ const register = await fetch('/api/auth/register/', {
 // 2. Vérifier l'email (lien envoyé par email)
 const verify = await fetch('/api/auth/verify-email/', {
   method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({ token: 'verification-token' })
 });
 
 // 3. Se connecter
 const login = await fetch('/api/auth/login/', {
   method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
     email: 'user@example.com',
     password: 'SecurePass123!'
   })
 });
+
+const { access_token, refresh_token } = await login.json();
 ```
 
 ### 2. Activation MFA
@@ -283,21 +359,26 @@ const login = await fetch('/api/auth/login/', {
 // 1. Initier l'activation
 const enable = await fetch('/api/auth/mfa/enable/', {
   method: 'POST',
-  headers: { 'Authorization': 'Bearer your-token' }
+  headers: { 
+    'Authorization': `Bearer ${access_token}`,
+    'Content-Type': 'application/json'
+  }
 });
 
-// Afficher le QR code à l'utilisateur
-const { qr_code, backup_codes } = enable.data;
+const { qr_code, backup_codes } = await enable.json();
 
-// 2. Vérifier avec un code de l'app
+// 2. Afficher le QR code à l'utilisateur
+// Sauvegarder les backup_codes
+
+// 3. Vérifier avec un code de l'app
 const verify = await fetch('/api/auth/mfa/verify/', {
   method: 'POST',
-  body: JSON.stringify({ code: '123456' }),
-  headers: { 'Authorization': 'Bearer your-token' }
+  headers: { 
+    'Authorization': `Bearer ${access_token}`,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({ code: '123456' })
 });
-
-// 3. Sauvegarder les backup codes
-saveBackupCodes(backup_codes);
 ```
 
 ### 3. Gestion des sessions
@@ -305,19 +386,19 @@ saveBackupCodes(backup_codes);
 ```javascript
 // Voir toutes les sessions actives
 const sessions = await fetch('/api/auth/sessions/', {
-  headers: { 'Authorization': 'Bearer your-token' }
+  headers: { 'Authorization': `Bearer ${access_token}` }
 });
 
 // Révoquer une session spécifique
 await fetch(`/api/auth/sessions/${session_id}/`, {
   method: 'DELETE',
-  headers: { 'Authorization': 'Bearer your-token' }
+  headers: { 'Authorization': `Bearer ${access_token}` }
 });
 
 // Déconnexion de tous les appareils sauf le courant
 await fetch('/api/auth/sessions/', {
   method: 'DELETE',
-  headers: { 'Authorization': 'Bearer your-token' }
+  headers: { 'Authorization': `Bearer ${access_token}` }
 });
 ```
 
@@ -328,35 +409,42 @@ await fetch('/api/auth/sessions/', {
 3. **Scalable** : Supporte des millions d'utilisateurs
 4. **Secure by default** : Toutes les best practices implémentées
 5. **Auditable** : Historique complet de toutes les actions
+6. **Production-ready** : Tests, logging, monitoring
+
+## 🐛 Debugging
+
+```bash
+# Voir les logs
+tail -f logs/app.log
+tail -f logs/error.log
+
+# Logs Docker
+docker-compose logs -f auth-service
+
+# Shell Prisma
+prisma studio
+
+# Shell Django
+python manage.py shell
+```
+
+## 🔄 Migrations
+
+```bash
+# Créer une migration Prisma
+prisma migrate dev --name migration_name
+
+# Appliquer en production
+prisma migrate deploy
+
+# Générer le client
+prisma generate
+```
 
 ## 📝 Licence
 
 MIT
-"""
-## Endpoints disponibles :
-# Authentication
-POST   /api/auth/register/
-POST   /api/auth/login/
-POST   /api/auth/login/mfa/
-POST   /api/auth/logout/
-POST   /api/auth/refresh/
-POST   /api/auth/verify-email/
-POST   /api/auth/password/request-reset/
-POST   /api/auth/password/reset/
-POST   /api/auth/password/change/
-GET    /api/auth/me/
 
-# MFA
-POST   /api/auth/mfa/enable/
-POST   /api/auth/mfa/verify/
-POST   /api/auth/mfa/disable/
-POST   /api/auth/mfa/backup-codes/
+## 📞 Support
 
-# Sessions
-GET    /api/auth/sessions/
-DELETE /api/auth/sessions/
-DELETE /api/auth/sessions/{session_id}/
-
-# Login History
-GET    /api/auth/login-history/
-GET    /api/auth/login-statistics/
+Pour toute question ou problème, ouvrez une issue sur GitHub.

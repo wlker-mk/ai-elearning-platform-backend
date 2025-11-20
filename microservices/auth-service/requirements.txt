@@ -14,6 +14,9 @@ PyJWT==2.8.0
 bcrypt==4.1.2
 argon2-cffi==23.1.0
 python-decouple==3.8
+pyotp==2.9.0
+qrcode==7.4.2
+pillow==10.1.0
 
 # ==========================================
 # DATABASE & ORM
@@ -37,6 +40,11 @@ httpx==0.25.2
 drf-yasg==1.21.7
 
 # ==========================================
+# USER AGENT PARSING
+# ==========================================
+user-agents==2.2.0
+
+# ==========================================
 # PRODUCTION SERVER
 # ==========================================
 gunicorn==21.2.0
@@ -58,6 +66,7 @@ pylint-django==2.5.5
 pytest==7.4.3
 pytest-django==4.5.2
 pytest-cov==4.1.0
+pytest-asyncio==0.21.1
 factory-boy==3.3.0
 freezegun==1.4.0
 Faker==21.1.0

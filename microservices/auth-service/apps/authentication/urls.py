@@ -1,6 +1,7 @@
 from django.urls import path
 from apps.authentication.views import (
     # Auth
+    HealthCheckView,
     RegisterView,
     LoginView,
     MFALoginView,
@@ -27,6 +28,7 @@ from apps.authentication.views import (
 app_name = 'authentication'
 
 urlpatterns = [
+    
     # Authentication
     path('register/', RegisterView.as_view(), name='register'),
     path('login/', LoginView.as_view(), name='login'),
@@ -38,6 +40,7 @@ urlpatterns = [
     path('password/reset/', ResetPasswordView.as_view(), name='reset-password'),
     path('password/change/', ChangePasswordView.as_view(), name='change-password'),
     path('me/', MeView.as_view(), name='me'),
+    path('health/', HealthCheckView.as_view(), name='health'),
     
     # MFA
     path('mfa/enable/', EnableMFAView.as_view(), name='enable-mfa'),

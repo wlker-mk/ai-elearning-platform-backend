@@ -1,11 +1,11 @@
-generator client {{
+generator client {
   provider = "prisma-client-py"
-}}
+}
 
-datasource db {{
+datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-}}
+}
 enum UserRole {
   SUPER_ADMIN
   ADMIN
@@ -76,6 +76,7 @@ model User {
 model Session {
   id              String    @id @default(uuid())
   userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade) 
   token           String    @unique
   expiresAt       DateTime
   ipAddress       String?
@@ -84,12 +85,14 @@ model Session {
   isValid         Boolean   @default(true)
   createdAt       DateTime  @default(now())
   @@index([userId, isValid])
+  @@index([token])
   @@map("sessions")
 }
 
 model RefreshToken {
   id              String    @id @default(uuid())
   userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   token           String    @unique
   expiresAt       DateTime
   isRevoked       Boolean   @default(false)
@@ -98,12 +101,14 @@ model RefreshToken {
   ipAddress       String?
   createdAt       DateTime  @default(now())
   @@index([userId, isRevoked])
+  @@index([token])
   @@map("refresh_tokens")
 }
 
 model LoginHistory {
   id              String    @id @default(uuid())
   userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   success         Boolean
   failureReason   String?
   ipAddress       String?

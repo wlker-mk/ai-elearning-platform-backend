@@ -13,9 +13,23 @@ from apps.authentication.services import (
 )
 from apps.authentication.serializers import *
 from shared.shared.utils.ip_utils import get_client_ip, get_user_agent
+from shared.shared.utils.email_utils import send_verification_email, send_password_reset_email
 from shared.shared.exceptions import *
 
 logger = logging.getLogger(__name__)
+
+
+class HealthCheckView(APIView):
+    """Vue pour le health check"""
+    permission_classes = [AllowAny]
+    
+    def get(self, request):
+        """Health check endpoint"""
+        return Response({
+            'status': 'healthy',
+            'service': 'auth-service',
+            'version': '1.0.0'
+        }, status=status.HTTP_200_OK)
 
 
 class RegisterView(APIView):
@@ -42,7 +56,11 @@ class RegisterView(APIView):
                 role=serializer.validated_data.get('role', 'STUDENT')
             )
             
-            # TODO: Envoyer un email de vérification
+            # Envoyer l'email de vérification
+            try:
+                send_verification_email(user.email, user.emailVerificationToken)
+            except Exception as e:
+                logger.error(f"Failed to send verification email: {str(e)}")
             
             response_serializer = UserSerializer(user)
             return Response({
@@ -390,8 +408,10 @@ class VerifyEmailView(APIView):
                 {'error': 'Internal server error'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-    class RequestPasswordResetView(APIView):
-        """Vue pour demander une réinitialisation de mot de passe"""
+
+
+class RequestPasswordResetView(APIView):
+    """Vue pour demander une réinitialisation de mot de passe"""
     
     permission_classes = [AllowAny]
     
@@ -411,7 +431,12 @@ class VerifyEmailView(APIView):
             # Générer un token de reset
             token = async_to_sync(self.user_service.request_password_reset)(email)
             
-            # TODO: Envoyer l'email avec le token
+            # Envoyer l'email avec le token
+            if token:
+                try:
+                    send_password_reset_email(email, token)
+                except Exception as e:
+                    logger.error(f"Failed to send password reset email: {str(e)}")
             
             # Toujours retourner succès pour ne pas révéler si l'email existe
             return Response(

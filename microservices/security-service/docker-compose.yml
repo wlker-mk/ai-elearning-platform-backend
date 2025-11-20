@@ -1,13 +1,74 @@
-version: '3.8'
-
 services:
+  security-postgres:
+    image: postgres:15
+    container_name: security_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: rene
+      POSTGRES_DB: security_db
+    ports:
+      - "5435:5432"
+    volumes:
+      - security_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d security_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  security-redis:
+    image: redis:7-alpine
+    container_name: security_redis
+    restart: always
+    ports:
+      - "6382:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   security-service:
     build: .
-    ports:
-      - "8015:8015"
-    environment:
-      - DATABASE_URL=postgresql://postgres:postgres@localhost:5432/security_service_db
-      - REDIS_URL=redis://localhost:6379
+    container_name: security_service
     volumes:
       - .:/app
-    command: python manage.py runserver 0.0.0.0:8015
+    ports:
+      - "8015:8015"
+    depends_on:
+      security-postgres:
+        condition: service_healthy
+      security-redis:
+        condition: service_healthy
+    environment:
+      DEBUG: "True"
+      SECRET_KEY: "votre-secret-key-security-service-super-securisee-ici"
+      POSTGRES_HOST: "security-postgres"
+      POSTGRES_DB: "security_db"
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "rene"
+      POSTGRES_PORT: "5432"
+      DATABASE_URL: "postgresql://postgres:rene@security-postgres:5432/security_db"
+      REDIS_URL: "redis://security-redis:6379/0"
+      CELERY_BROKER_URL: "redis://security-redis:6379/1"
+      CELERY_RESULT_BACKEND: "redis://security-redis:6379/1"
+      ALLOWED_HOSTS: "localhost,127.0.0.1,0.0.0.0,backend,security-service"
+      DJANGO_SETTINGS_MODULE: "config.settings.development"
+      LOG_LEVEL: "INFO"
+      ENCRYPTION_KEY: "votre-cle-de-chiffrement-32-caracteres"
+      JWT_SECRET_KEY: "votre-jwt-secret-key-different-de-django"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8004/api/security/health/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  security_postgres_data:
