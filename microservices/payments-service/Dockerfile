@@ -1,35 +1,27 @@
-FROM python:3.11-slim
+FROM maven:3.9-eclipse-temurin-17-alpine AS build
 
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    gcc \
-    postgresql-client \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+# Copy pom.xml and download dependencies
+COPY pom.xml .
+RUN mvn dependency:go-offline
 
-# Install Python dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy source code and build
+COPY src ./src
+RUN mvn clean package -DskipTests
 
-# Install Prisma
-RUN pip install prisma
+# Runtime stage
+FROM eclipse-temurin:17-jre-alpine
 
-# Copy application
-COPY . .
+WORKDIR /app
 
-# Create logs directory
-RUN mkdir -p /app/logs
+# Copy jar from build stage
+COPY --from=build /app/target/*.jar app.jar
 
-# Make entrypoint executable
-RUN chmod +x docker-entrypoint.sh
+# Create non-root user
+RUN addgroup -g 1001 -S appuser && adduser -u 1001 -S appuser -G appuser
+USER appuser
 
-# Generate Prisma client
-RUN prisma generate
-
-# Expose port
 EXPOSE 8006
 
-# Start the application
-CMD ["./docker-entrypoint.sh"]
+ENTRYPOINT ["java", "-jar", "app.jar"]

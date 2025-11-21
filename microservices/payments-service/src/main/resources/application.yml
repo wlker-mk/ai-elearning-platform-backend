@@ -1,0 +1,51 @@
+erver:
+  port: 8006
+  servlet:
+    context-path: /api
+
+spring:
+  application:
+    name: payment-service
+  
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/payment_db}
+    username: ${POSTGRES_USER:postgres}
+    password: ${POSTGRES_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+  
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+  
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    default-property-inclusion: non_null
+
+# Payment Gateway Configuration
+payment:
+  stripe:
+    api-key: ${STRIPE_API_KEY}
+    webhook-secret: ${STRIPE_WEBHOOK_SECRET}
+  
+  paypal:
+    client-id: ${PAYPAL_CLIENT_ID}
+    client-secret: ${PAYPAL_CLIENT_SECRET}
+    mode: ${PAYPAL_MODE:sandbox}
+  
+  platform:
+    fee-percentage: ${PLATFORM_FEE_PERCENTAGE:10.0}
+    currency: ${DEFAULT_CURRENCY:USD}
+
+# Logging
+logging:
+  level:
+    com.lms.payment: DEBUG
+    org.springframework.web: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
