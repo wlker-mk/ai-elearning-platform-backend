@@ -9,12 +9,16 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import lombok.Getter;
+import lombok.Setter;
 
 @Entity
 @Table(name = "discounts", indexes = {
     @Index(name = "idx_code", columnList = "code")
 })
 @Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -42,15 +46,19 @@ public class Discount {
     
     private Integer maxUses;
     
+    @Builder.Default
     @Column(nullable = false)
     private Integer usesCount = 0;
     
+    @Builder.Default
     @Column(nullable = false)
     private Integer maxUsesPerUser = 1;
     
+    @Builder.Default
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
     
+    @Builder.Default
     @Column(nullable = false)
     private LocalDateTime updatedAt = LocalDateTime.now();
     
@@ -58,4 +66,5 @@ public class Discount {
     protected void onUpdate() {
         this.updatedAt = LocalDateTime.now();
     }
+    
 }

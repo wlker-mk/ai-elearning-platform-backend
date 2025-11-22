@@ -10,6 +10,8 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import lombok.Getter;
+import lombok.Setter;
 
 @Entity
 @Table(name = "subscriptions", indexes = {
@@ -17,6 +19,8 @@ import java.time.LocalDateTime;
     @Index(name = "idx_active_end_date", columnList = "isActive, endDate")
 })
 @Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -41,9 +45,11 @@ public class Subscription {
     
     private LocalDateTime trialEndDate;
     
+    @Builder.Default
     @Column(nullable = false)
     private Boolean isActive = true;
     
+    @Builder.Default
     @Column(nullable = false)
     private Boolean isCancelled = false;
     
@@ -51,10 +57,12 @@ public class Subscription {
     
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal price;
-    
+
+    @Builder.Default
     @Column(nullable = false, length = 3)
     private String currency = "USD";
     
+    @Builder.Default
     @Column(nullable = false)
     private Boolean autoRenew = true;
     
@@ -66,9 +74,11 @@ public class Subscription {
     
     private String lastPaymentId;
     
+    @Builder.Default
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
     
+    @Builder.Default
     @Column(nullable = false)
     private LocalDateTime updatedAt = LocalDateTime.now();
     

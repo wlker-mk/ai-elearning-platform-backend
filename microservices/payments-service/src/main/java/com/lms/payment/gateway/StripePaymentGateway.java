@@ -19,6 +19,7 @@ import org.springframework.stereotype.Component;
 import jakarta.annotation.PostConstruct;
 import java.math.BigDecimal;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 @Component
@@ -33,7 +34,16 @@ public class StripePaymentGateway implements PaymentGateway {
     
     @PostConstruct
     public void init() {
+        if (apiKey == null || apiKey.isBlank()) {
+            log.error("Stripe API key is not configured (payment.stripe.api-key)");
+            throw new IllegalStateException("Stripe API key is not configured");
+        }
+
         Stripe.apiKey = apiKey;
+
+        if (webhookSecret == null || webhookSecret.isBlank()) {
+            log.warn("Stripe webhook secret is not configured (payment.stripe.webhook-secret). Webhook handling may fail.");
+        }
     }
     
     @Override
@@ -42,14 +52,22 @@ public class StripePaymentGateway implements PaymentGateway {
         
         try {
             // Convert amount to cents (Stripe uses smallest currency unit)
-            long amountInCents = payment.getAmount()
-                .multiply(BigDecimal.valueOf(100))
-                .longValue();
+            if (payment.getAmount() == null) {
+                throw new PaymentException("Payment amount is null");
+            }
+
+            long amountInCents;
+            try {
+                amountInCents = payment.getAmount().movePointRight(2).longValueExact();
+            } catch (ArithmeticException ex) {
+                log.error("Invalid payment amount for cents conversion: {}", payment.getAmount(), ex);
+                throw new PaymentException("Invalid payment amount: " + payment.getAmount(), ex);
+            }
             
             // Create payment intent
             PaymentIntentCreateParams params = PaymentIntentCreateParams.builder()
                 .setAmount(amountInCents)
-                .setCurrency(payment.getCurrency().toLowerCase())
+                .setCurrency(payment.getCurrency() == null ? null : payment.getCurrency().toLowerCase(Locale.ROOT))
                 .setDescription(payment.getDescription())
                 .putMetadata("payment_id", payment.getId())
                 .putMetadata("student_id", payment.getStudentId())
@@ -76,7 +94,7 @@ public class StripePaymentGateway implements PaymentGateway {
                 
         } catch (StripeException e) {
             log.error("Stripe payment failed: {}", e.getMessage(), e);
-            throw new PaymentException("Stripe payment failed: " + e.getMessage());
+            throw new PaymentException("Stripe payment failed: " + e.getMessage(), e);
         }
     }
     
@@ -85,7 +103,17 @@ public class StripePaymentGateway implements PaymentGateway {
         log.info("Processing Stripe refund for: {}", transactionId);
         
         try {
-            long amountInCents = amount.multiply(BigDecimal.valueOf(100)).longValue();
+            if (amount == null) {
+                throw new PaymentException("Refund amount is null");
+            }
+
+            long amountInCents;
+            try {
+                amountInCents = amount.movePointRight(2).longValueExact();
+            } catch (ArithmeticException ex) {
+                log.error("Invalid refund amount for cents conversion: {}", amount, ex);
+                throw new PaymentException("Invalid refund amount: " + amount, ex);
+            }
             
             RefundCreateParams params = RefundCreateParams.builder()
                 .setPaymentIntent(transactionId)
@@ -98,7 +126,7 @@ public class StripePaymentGateway implements PaymentGateway {
             
         } catch (StripeException e) {
             log.error("Stripe refund failed: {}", e.getMessage(), e);
-            throw new PaymentException("Stripe refund failed: " + e.getMessage());
+            throw new PaymentException("Stripe refund failed: " + e.getMessage(), e);
         }
     }
     
@@ -127,7 +155,7 @@ public class StripePaymentGateway implements PaymentGateway {
             
         } catch (Exception e) {
             log.error("Error handling Stripe webhook: {}", e.getMessage(), e);
-            throw new PaymentException("Failed to handle webhook");
+            throw new PaymentException("Failed to handle webhook: " + e.getMessage(), e);
         }
     }
     

@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+@SuppressWarnings("unused")
 @Service
 @RequiredArgsConstructor
 @Slf4j

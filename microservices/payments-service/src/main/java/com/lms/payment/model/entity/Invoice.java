@@ -9,6 +9,8 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import lombok.Getter;
+import lombok.Setter;
 
 
 
@@ -18,9 +20,12 @@ import java.time.LocalDateTime;
     @Index(name = "idx_student_status", columnList = "studentId, status")
 })
 @Data
+@Getter
+@Setter
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+
 public class Invoice {
     
     @Id
@@ -38,24 +43,29 @@ public class Invoice {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal subtotal;
     
+    @Builder.Default
     @Column(precision = 10, scale = 2)
     private BigDecimal tax = BigDecimal.ZERO;
     
+    @Builder.Default
     @Column(precision = 10, scale = 2)
     private BigDecimal discount = BigDecimal.ZERO;
     
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal total;
     
+    @Builder.Default
     @Column(precision = 10, scale = 2)
     private BigDecimal amountPaid = BigDecimal.ZERO;
     
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal amountDue;
     
+    @Builder.Default
     @Column(nullable = false, length = 3)
     private String currency = "USD";
     
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private PaymentStatus status = PaymentStatus.PENDING;
@@ -63,6 +73,7 @@ public class Invoice {
     @Column(columnDefinition = "jsonb", nullable = false)
     private String items;
     
+    @Builder.Default
     @Column(nullable = false)
     private LocalDateTime issueDate = LocalDateTime.now();
     
@@ -73,9 +84,11 @@ public class Invoice {
     
     private String pdfUrl;
     
+    @Builder.Default
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
     
+    @Builder.Default
     @Column(nullable = false)
     private LocalDateTime updatedAt = LocalDateTime.now();
     

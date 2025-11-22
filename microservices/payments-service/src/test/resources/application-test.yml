@@ -1,0 +1,32 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+  
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+  
+  flyway:
+    enabled: false
+
+payment:
+  stripe:
+    api-key: sk_test_fake_key
+    webhook-secret: whsec_test_fake_secret
+    publishable-key: pk_test_fake_key
+  paypal:
+    client-id: test_client_id
+    client-secret: test_client_secret
+    mode: sandbox
+  platform:
+    fee-percentage: 10.0
+    currency: USD
+
+logging:
+  level:
+    com.lms.payment: DEBUG

@@ -7,11 +7,11 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.Type;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.Map;
+import lombok.Getter;
+import lombok.Setter;
 
 @Entity
 @Table(name = "payments", indexes = {
@@ -19,6 +19,8 @@ import java.util.Map;
     @Index(name = "idx_transaction_id", columnList = "transactionId")
 })
 @Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -34,6 +36,7 @@ public class Payment {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal amount;
     
+    @Builder.Default
     @Column(nullable = false, length = 3)
     private String currency = "USD";
     
@@ -41,6 +44,7 @@ public class Payment {
     @Column(nullable = false)
     private PaymentMethod method;
     
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private PaymentStatus status = PaymentStatus.PENDING;
@@ -64,16 +68,19 @@ public class Payment {
     
     @Column(columnDefinition = "jsonb")
     private String metadata;
-    
+
+    @Builder.Default
     @Column(precision = 10, scale = 2)
     private BigDecimal processingFee = BigDecimal.ZERO;
     
+    @Builder.Default
     @Column(precision = 10, scale = 2)
     private BigDecimal platformFee = BigDecimal.ZERO;
     
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal netAmount;
     
+    @Builder.Default
     @Column(nullable = false)
     private Boolean isRefunded = false;
     
@@ -84,9 +91,11 @@ public class Payment {
     
     private LocalDateTime paidAt;
     
+    @Builder.Default
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
     
+    @Builder.Default
     @Column(nullable = false)
     private LocalDateTime updatedAt = LocalDateTime.now();
     
@@ -94,4 +103,14 @@ public class Payment {
     protected void onUpdate() {
         this.updatedAt = LocalDateTime.now();
     }
+
+    public void setStatus(PaymentStatus paymentStatus) {
+        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    }
+
+    public void setExternalReference(String pi_test123) {
+        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    }
+    
+    
 }

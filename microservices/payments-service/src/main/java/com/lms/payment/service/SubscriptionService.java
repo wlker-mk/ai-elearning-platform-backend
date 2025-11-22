@@ -22,6 +22,7 @@ import java.util.Map;
 public class SubscriptionService {
     
     private final SubscriptionRepository subscriptionRepository;
+    @SuppressWarnings("unused")
     private final PaymentService paymentService;
     
     private static final Map<SubscriptionType, Integer> SUBSCRIPTION_DURATIONS = Map.of(
