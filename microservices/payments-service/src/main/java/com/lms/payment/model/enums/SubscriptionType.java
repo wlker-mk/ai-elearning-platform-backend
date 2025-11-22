@@ -1,4 +1,4 @@
-package main.java.com.lms.payment.model.enums;
+package com.lms.payment.model.enums;
 
 public enum SubscriptionType {
     FREE,

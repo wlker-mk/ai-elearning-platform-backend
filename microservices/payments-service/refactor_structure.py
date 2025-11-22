@@ -4,7 +4,7 @@ import shutil
 # ---------------------------------------------
 # CONFIGURATION
 # ---------------------------------------------
-DRY_RUN = False # ⚠️ Mettre False après confirmation
+DRY_RUN = true # ⚠️ Mettre False après confirmation
 BASE_DIR = os.getcwd()  # détecte automatiquement le dossier courant
 
 print(f"Working directory: {BASE_DIR}")

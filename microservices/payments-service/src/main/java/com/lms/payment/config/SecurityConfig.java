@@ -1,4 +1,4 @@
-package main.java.com.lms.payment.config;
+package com.lms.payment.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

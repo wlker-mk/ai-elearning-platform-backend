@@ -1,4 +1,4 @@
-package main.java.com.lms.payment.service;
+package com.lms.payment.service;
 
 import com.lms.payment.dto.PaymentRequest;
 import com.lms.payment.dto.PaymentResponse;

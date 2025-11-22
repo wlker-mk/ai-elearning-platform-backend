@@ -2,28 +2,104 @@ spring:
   datasource:
     url: jdbc:postgresql://postgres:5432/payment_db
     username: postgres
-    password: postgres
+    password: rene
     driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+  
   jpa:
     hibernate:
       ddl-auto: validate
-    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+    show-sql: false
+  
   redis:
     host: redis
     port: 6379
+    timeout: 2000ms
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 2
+        max-wait: -1ms
 
-server:
-  port: 8003
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
 
+# Configuration Stripe
+stripe:
+  secret-key: ${STRIPE_SECRET_KEY}
+  publishable-key: ${STRIPE_PUBLISHABLE_KEY}
+  webhook-secret: ${STRIPE_WEBHOOK_SECRET}
+
+# Configuration PayPal
+paypal:
+  client-id: ${PAYPAL_CLIENT_ID}
+  client-secret: ${PAYPAL_CLIENT_SECRET}
+  mode: ${PAYPAL_MODE:sandbox}
+
+# Configuration application
+app:
+  platform:
+    fee-percentage: ${PLATFORM_FEE_PERCENTAGE:10.0}
+  default-currency: ${DEFAULT_CURRENCY:USD}
+
+# Logging
+logging:
+  level:
+    com.lms.payment: ${LOGGING_LEVEL_COM_LMS_PAYMENT:INFO}
+    org.springframework.web: INFO
+    org.hibernate.SQL: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/payment-service.log
+
+# Actuator
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        include: health,info,metrics,prometheus
   endpoint:
     health:
       show-details: always
+      show-components: always
+  health:
+    redis:
+      enabled: true
 
-logging:
-  level:
-    com.yourcompany.payment: INFO
+# Resilience4j Circuit Breaker
+resilience4j:
+  circuitbreaker:
+    instances:
+      stripeGateway:
+        sliding-window-size: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+        permitted-number-of-calls-in-half-open-state: 3
+      paypalGateway:
+        sliding-window-size: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+        permitted-number-of-calls-in-half-open-state: 3
+  retry:
+    instances:
+      stripeRetry:
+        max-attempts: 3
+        wait-duration: 2s
+      paypalRetry:
+        max-attempts: 3
+        wait-duration: 2s

@@ -1,4 +1,4 @@
-package main.java.com.lms.payment.service;
+package com.lms.payment.service;
 
 import com.lms.payment.exception.DiscountException;
 import com.lms.payment.model.entity.Discount;
@@ -37,7 +37,7 @@ public class DiscountService {
         discountRepository.save(discount);
         
         log.info("Discount applied successfully. Original: {}, Discounted: {}", 
-                 amount, discountedAmount);
+                amount, discountedAmount);
         
         return discountedAmount;
     }

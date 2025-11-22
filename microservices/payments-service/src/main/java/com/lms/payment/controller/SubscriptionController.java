@@ -1,4 +1,4 @@
-package main.java.com.lms.payment.controller;
+package com.lms.payment.controller;
 
 import com.lms.payment.dto.SubscriptionRequest;
 import com.lms.payment.model.entity.Subscription;

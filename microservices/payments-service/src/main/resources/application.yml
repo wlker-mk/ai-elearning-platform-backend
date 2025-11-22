@@ -1,7 +1,10 @@
-erver:
+server:
   port: 8006
   servlet:
     context-path: /api
+  error:
+    include-message: always
+    include-binding-errors: always
 
 spring:
   application:
@@ -12,6 +15,12 @@ spring:
     username: ${POSTGRES_USER:postgres}
     password: ${POSTGRES_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
   
   jpa:
     hibernate:
@@ -21,17 +30,31 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
+        jdbc:
+          batch_size: 20
+    open-in-view: false
   
   jackson:
     serialization:
       write-dates-as-timestamps: false
+      indent-output: true
     default-property-inclusion: non_null
+    deserialization:
+      fail-on-unknown-properties: false
+
+  # Flyway migrations
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+    validate-on-migrate: true
 
 # Payment Gateway Configuration
 payment:
   stripe:
     api-key: ${STRIPE_API_KEY}
     webhook-secret: ${STRIPE_WEBHOOK_SECRET}
+    publishable-key: ${STRIPE_PUBLISHABLE_KEY}
   
   paypal:
     client-id: ${PAYPAL_CLIENT_ID}
@@ -42,10 +65,83 @@ payment:
     fee-percentage: ${PLATFORM_FEE_PERCENTAGE:10.0}
     currency: ${DEFAULT_CURRENCY:USD}
 
+# Management & Monitoring
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+  health:
+    livenessState:
+      enabled: true
+    readinessState:
+      enabled: true
+
 # Logging
 logging:
   level:
+    root: INFO
     com.lms.payment: DEBUG
     org.springframework.web: INFO
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/payment-service.log
+    max-size: 10MB
+    max-history: 30
+
+# Resilience & Circuit Breaker
+resilience4j:
+  circuitbreaker:
+    instances:
+      stripe:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 5s
+        failureRateThreshold: 50
+        eventConsumerBufferSize: 10
+      paypal:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 5s
+        failureRateThreshold: 50
+
+  retry:
+    instances:
+      stripe:
+        maxAttempts: 3
+        waitDuration: 1s
+        enableExponentialBackoff: true
+        exponentialBackoffMultiplier: 2
+      paypal:
+        maxAttempts: 3
+        waitDuration: 1s
+
+# API Documentation
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+  packages-to-scan: com.lms.payment.controller
+  show-actuator: true

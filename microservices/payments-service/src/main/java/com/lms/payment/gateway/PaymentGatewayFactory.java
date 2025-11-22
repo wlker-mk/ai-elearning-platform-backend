@@ -1,4 +1,4 @@
-package main.java.com.lms.payment.gateway;
+package com.lms.payment.gateway;
 
 import com.lms.payment.exception.PaymentException;
 import com.lms.payment.model.enums.PaymentMethod;

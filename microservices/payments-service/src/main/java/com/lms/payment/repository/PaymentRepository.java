@@ -1,4 +1,4 @@
-package main.java.com.lms.payment.repository;
+package com.lms.payment.repository;
 
 import com.lms.payment.model.entity.Payment;
 import com.lms.payment.model.enums.PaymentStatus;

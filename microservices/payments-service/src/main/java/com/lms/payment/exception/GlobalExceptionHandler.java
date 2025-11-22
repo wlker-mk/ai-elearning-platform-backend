@@ -1,4 +1,4 @@
-package main.java.com.lms.payment.exception;
+package com.lms.payment.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

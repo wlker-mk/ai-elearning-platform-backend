@@ -1,4 +1,4 @@
-package main.java.com.lms.payment.exception;
+package com.lms.payment.exception;
 
 public class DiscountException extends RuntimeException {
     public DiscountException(String message) {

@@ -1,4 +1,4 @@
-package main.java.com.lms.payment.controller;
+package com.lms.payment.controller;
 
 import com.lms.payment.model.entity.Discount;
 import com.lms.payment.service.DiscountService;

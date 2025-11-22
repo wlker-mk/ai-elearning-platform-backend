@@ -1,4 +1,4 @@
-package main.java.com.lms.payment.dto;
+package com.lms.payment.dto;
 
 import com.lms.payment.model.enums.PaymentStatus;
 import lombok.AllArgsConstructor;
