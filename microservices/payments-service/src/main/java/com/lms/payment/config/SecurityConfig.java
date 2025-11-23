@@ -18,8 +18,20 @@ public class SecurityConfig {
             .sessionManagement(session -> 
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/webhooks/**").permitAll()
-                .anyRequest().authenticated()
+                // Endpoints publics pour développement et monitoring
+                .requestMatchers(
+                    "/webhooks/**",
+                    "/health/**",
+                    "/actuator/**",
+                    "/swagger-ui/**",
+                    "/swagger-ui.html",
+                    "/v3/api-docs/**",
+                    "/api-docs/**",
+                    "/error"
+                ).permitAll()
+                // TEMPORAIRE: Tout est public pour le développement
+                // TODO: Changer en .authenticated() après implémentation JWT
+                .anyRequest().permitAll()
             );
         
         return http.build();

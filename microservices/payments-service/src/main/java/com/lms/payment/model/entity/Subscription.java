@@ -10,8 +10,6 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import lombok.Getter;
-import lombok.Setter;
 
 @Entity
 @Table(name = "subscriptions", indexes = {
@@ -19,8 +17,6 @@ import lombok.Setter;
     @Index(name = "idx_active_end_date", columnList = "isActive, endDate")
 })
 @Data
-@Getter
-@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder

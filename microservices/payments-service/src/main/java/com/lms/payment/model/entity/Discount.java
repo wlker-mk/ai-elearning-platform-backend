@@ -9,16 +9,12 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import lombok.Getter;
-import lombok.Setter;
 
 @Entity
 @Table(name = "discounts", indexes = {
     @Index(name = "idx_code", columnList = "code")
 })
 @Data
-@Getter
-@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder

@@ -52,20 +52,20 @@ spring:
 # Payment Gateway Configuration
 payment:
   stripe:
-    api-key: ${STRIPE_API_KEY}
-    webhook-secret: ${STRIPE_WEBHOOK_SECRET}
-    publishable-key: ${STRIPE_PUBLISHABLE_KEY}
-  
+    api-key: ${STRIPE_API_KEY:sk_test_fake_key_for_development}
+    webhook-secret: ${STRIPE_WEBHOOK_SECRET:whsec_fake_secret_for_development}
+    publishable-key: ${STRIPE_PUBLISHABLE_KEY:pk_test_fake_key_for_development}
+
   paypal:
-    client-id: ${PAYPAL_CLIENT_ID}
-    client-secret: ${PAYPAL_CLIENT_SECRET}
+    client-id: ${PAYPAL_CLIENT_ID:sb_placeholder_client_id}
+    client-secret: ${PAYPAL_CLIENT_SECRET:sb_placeholder_client_secret}
     mode: ${PAYPAL_MODE:sandbox}
-  
+
   platform:
     fee-percentage: ${PLATFORM_FEE_PERCENTAGE:10.0}
     currency: ${DEFAULT_CURRENCY:USD}
 
-# Management & Monitoring
+# Le reste de votre configuration reste identique...
 management:
   endpoints:
     web:

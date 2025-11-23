@@ -13,14 +13,13 @@ import java.time.LocalDateTime;
 import lombok.Getter;
 import lombok.Setter;
 
+@SuppressWarnings("unused")
 @Entity
 @Table(name = "payments", indexes = {
     @Index(name = "idx_student_status", columnList = "studentId, status"),
     @Index(name = "idx_transaction_id", columnList = "transactionId")
 })
 @Data
-@Getter
-@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -102,15 +101,8 @@ public class Payment {
     @PreUpdate
     protected void onUpdate() {
         this.updatedAt = LocalDateTime.now();
-    }
-
-    public void setStatus(PaymentStatus paymentStatus) {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
-    }
-
-    public void setExternalReference(String pi_test123) {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
-    }
     
     
+
+    }
 }

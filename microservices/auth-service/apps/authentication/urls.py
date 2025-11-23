@@ -23,6 +23,12 @@ from apps.authentication.views import (
     # Login History
     LoginHistoryView,
     LoginStatisticsView,
+    
+    # OAuth
+    GoogleOAuthView,
+    GitHubOAuthView,
+    LinkOAuthView,
+    UnlinkOAuthView,
 )
 
 app_name = 'authentication'
@@ -55,4 +61,10 @@ urlpatterns = [
     # Login History
     path('login-history/', LoginHistoryView.as_view(), name='login-history'),
     path('login-statistics/', LoginStatisticsView.as_view(), name='login-statistics'),
+    
+    # OAuth
+    path('oauth/google/', GoogleOAuthView.as_view(), name='google-oauth'),
+    path('oauth/github/', GitHubOAuthView.as_view(), name='github-oauth'),
+    path('oauth/link/', LinkOAuthView.as_view(), name='link-oauth'),
+    path('oauth/unlink/', UnlinkOAuthView.as_view(), name='unlink-oauth'),
 ]

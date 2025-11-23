@@ -1,5 +1,3 @@
--- src/main/resources/db/migration/V1__create_payments_tables.sql
-
 -- ============================================
 -- PAYMENTS TABLE
 -- ============================================

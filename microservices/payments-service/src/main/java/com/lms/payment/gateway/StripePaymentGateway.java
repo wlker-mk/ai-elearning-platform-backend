@@ -18,9 +18,7 @@ import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PostConstruct;
 import java.math.BigDecimal;
-import java.util.HashMap;
 import java.util.Locale;
-import java.util.Map;
 
 @Component
 @Slf4j
@@ -34,15 +32,20 @@ public class StripePaymentGateway implements PaymentGateway {
     
     @PostConstruct
     public void init() {
-        if (apiKey == null || apiKey.isBlank()) {
-            log.error("Stripe API key is not configured (payment.stripe.api-key)");
-            throw new IllegalStateException("Stripe API key is not configured");
+        if (apiKey == null || apiKey.isBlank() || apiKey.contains("fake") || apiKey.contains("your_")) {
+            log.warn("⚠️  Stripe API key not configured properly");
+            log.warn("⚠️  Using fake key for development - Real payments will NOT work");
+            log.warn("⚠️  Set STRIPE_API_KEY environment variable for production");
+            Stripe.apiKey = "sk_test_fake_key_for_development_only";
+        } else {
+            Stripe.apiKey = apiKey;
+            log.info("✓ Stripe API configured successfully");
         }
 
-        Stripe.apiKey = apiKey;
-
-        if (webhookSecret == null || webhookSecret.isBlank()) {
-            log.warn("Stripe webhook secret is not configured (payment.stripe.webhook-secret). Webhook handling may fail.");
+        if (webhookSecret == null || webhookSecret.isBlank() || webhookSecret.contains("fake") || webhookSecret.contains("your_")) {
+            log.warn("⚠️  Stripe webhook secret not configured properly");
+        } else {
+            log.info("✓ Stripe webhook secret configured");
         }
     }
     

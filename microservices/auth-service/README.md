@@ -448,3 +448,16 @@ MIT
 ## 📞 Support
 
 Pour toute question ou problème, ouvrez une issue sur GitHub.
+
+# Ajouter à requirements.txt pour OAuth
+
+# ==========================================
+# OAUTH & HTTP CLIENTS
+# ==========================================
+httpx==0.25.2
+authlib==1.3.0
+python-jose[cryptography]==3.3.0 # Pour JWT
+requests-oauthlib==1.3.1
+oauthlib==3.2.0
+pyjwt[crypto]==2.6.0 # Pour JWT
+```

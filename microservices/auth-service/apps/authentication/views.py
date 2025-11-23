@@ -3,7 +3,23 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from asgiref.sync import async_to_sync
+
+"""
+Vues OAuth pour Google et GitHub
+Ajout dans: apps/authentication/views.py
+"""
+from django.conf import settings
 import logging
+
+from apps.authentication.services import OAuthService, SessionService, LoginHistoryService
+from apps.authentication.serializers import (
+    GoogleOAuthSerializer,
+    GitHubOAuthSerializer,
+    LinkOAuthSerializer,
+    UserSerializer
+)
+
+
 
 from apps.authentication.services import (
     UserService,
@@ -17,7 +33,7 @@ from shared.shared.utils.email_utils import send_verification_email, send_passwo
 from shared.shared.exceptions import *
 
 logger = logging.getLogger(__name__)
-
+import logging
 
 class HealthCheckView(APIView):
     """Vue pour le health check"""
@@ -887,5 +903,341 @@ class LoginStatisticsView(APIView):
             logger.error(f"Get login statistics error: {str(e)}")
             return Response(
                 {'error': 'Internal server error'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+            
+            
+class GoogleOAuthView(APIView):
+    """Vue pour l'authentification Google OAuth"""
+    
+    permission_classes = [AllowAny]
+    
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.oauth_service = OAuthService()
+        self.session_service = SessionService()
+        self.login_history_service = LoginHistoryService()
+    
+    def post(self, request):
+        """Authentifier avec Google"""
+        try:
+            serializer = GoogleOAuthSerializer(data=request.data)
+            if not serializer.is_valid():
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+            code = serializer.validated_data['code']
+            redirect_uri = serializer.validated_data['redirect_uri']
+            
+            # Récupérer les credentials depuis settings
+            client_id = getattr(settings, 'GOOGLE_CLIENT_ID', None)
+            client_secret = getattr(settings, 'GOOGLE_CLIENT_SECRET', None)
+            
+            if not client_id or not client_secret:
+                return Response(
+                    {'error': 'Google OAuth not configured'},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+            
+            # Récupérer les informations de la requête
+            ip_address = get_client_ip(request)
+            user_agent = get_user_agent(request)
+            
+            # Authentifier avec Google
+            user, is_new = async_to_sync(self.oauth_service.authenticate_google)(
+                code=code,
+                client_id=client_id,
+                client_secret=client_secret,
+                redirect_uri=redirect_uri
+            )
+            
+            # Créer une session
+            session = async_to_sync(self.session_service.create_session)(
+                user_id=user.id,
+                ip_address=ip_address,
+                user_agent=user_agent
+            )
+            
+            # Créer un refresh token
+            refresh_token = async_to_sync(self.session_service.create_refresh_token)(
+                user_id=user.id,
+                ip_address=ip_address
+            )
+            
+            # Logger la connexion
+            async_to_sync(self.login_history_service.log_login_attempt)(
+                user_id=user.id,
+                success=True,
+                ip_address=ip_address,
+                user_agent=user_agent
+            )
+            
+            user_serializer = UserSerializer(user)
+            
+            return Response({
+                'user': user_serializer.data,
+                'access_token': session.token,
+                'refresh_token': refresh_token.token,
+                'expires_at': session.expiresAt.isoformat(),
+                'is_new_user': is_new,
+                'message': 'Google authentication successful'
+            }, status=status.HTTP_200_OK)
+            
+        except ValueError as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            logger.error(f"Google OAuth error: {str(e)}")
+            return Response(
+                {'error': 'Google authentication failed'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class GitHubOAuthView(APIView):
+    """Vue pour l'authentification GitHub OAuth"""
+    
+    permission_classes = [AllowAny]
+    
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.oauth_service = OAuthService()
+        self.session_service = SessionService()
+        self.login_history_service = LoginHistoryService()
+    
+    def post(self, request):
+        """Authentifier avec GitHub"""
+        try:
+            serializer = GitHubOAuthSerializer(data=request.data)
+            if not serializer.is_valid():
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+            code = serializer.validated_data['code']
+            
+            # Récupérer les credentials depuis settings
+            client_id = getattr(settings, 'GITHUB_CLIENT_ID', None)
+            client_secret = getattr(settings, 'GITHUB_CLIENT_SECRET', None)
+            
+            if not client_id or not client_secret:
+                return Response(
+                    {'error': 'GitHub OAuth not configured'},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+            
+            # Récupérer les informations de la requête
+            ip_address = get_client_ip(request)
+            user_agent = get_user_agent(request)
+            
+            # Authentifier avec GitHub
+            user, is_new = async_to_sync(self.oauth_service.authenticate_github)(
+                code=code,
+                client_id=client_id,
+                client_secret=client_secret
+            )
+            
+            # Créer une session
+            session = async_to_sync(self.session_service.create_session)(
+                user_id=user.id,
+                ip_address=ip_address,
+                user_agent=user_agent
+            )
+            
+            # Créer un refresh token
+            refresh_token = async_to_sync(self.session_service.create_refresh_token)(
+                user_id=user.id,
+                ip_address=ip_address
+            )
+            
+            # Logger la connexion
+            async_to_sync(self.login_history_service.log_login_attempt)(
+                user_id=user.id,
+                success=True,
+                ip_address=ip_address,
+                user_agent=user_agent
+            )
+            
+            user_serializer = UserSerializer(user)
+            
+            return Response({
+                'user': user_serializer.data,
+                'access_token': session.token,
+                'refresh_token': refresh_token.token,
+                'expires_at': session.expiresAt.isoformat(),
+                'is_new_user': is_new,
+                'message': 'GitHub authentication successful'
+            }, status=status.HTTP_200_OK)
+            
+        except ValueError as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            logger.error(f"GitHub OAuth error: {str(e)}")
+            return Response(
+                {'error': 'GitHub authentication failed'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class LinkOAuthView(APIView):
+    """Vue pour lier un provider OAuth à un compte existant"""
+    
+    permission_classes = [IsAuthenticated]
+    
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.oauth_service = OAuthService()
+    
+    def post(self, request):
+        """Lier un provider OAuth"""
+        try:
+            serializer = LinkOAuthSerializer(data=request.data)
+            if not serializer.is_valid():
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+            provider = serializer.validated_data['provider']
+            code = serializer.validated_data['code']
+            redirect_uri = serializer.validated_data.get('redirect_uri')
+            
+            user_id = str(request.user.id)
+            
+            # Authentifier avec le provider pour obtenir l'ID
+            if provider == 'GOOGLE':
+                client_id = getattr(settings, 'GOOGLE_CLIENT_ID', None)
+                client_secret = getattr(settings, 'GOOGLE_CLIENT_SECRET', None)
+                
+                if not client_id or not client_secret or not redirect_uri:
+                    return Response(
+                        {'error': 'Google OAuth not properly configured'},
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                    )
+                
+                # Échanger le code et récupérer l'ID
+                token_data = async_to_sync(self.oauth_service._exchange_google_code)(
+                    code, client_id, client_secret, redirect_uri
+                )
+                
+                if not token_data:
+                    return Response(
+                        {'error': 'Failed to verify Google account'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                
+                user_info = async_to_sync(self.oauth_service._get_google_user_info)(
+                    token_data['access_token']
+                )
+                
+                if not user_info:
+                    return Response(
+                        {'error': 'Failed to get Google user info'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                
+                provider_id = user_info['id']
+                
+            elif provider == 'GITHUB':
+                client_id = getattr(settings, 'GITHUB_CLIENT_ID', None)
+                client_secret = getattr(settings, 'GITHUB_CLIENT_SECRET', None)
+                
+                if not client_id or not client_secret:
+                    return Response(
+                        {'error': 'GitHub OAuth not configured'},
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                    )
+                
+                # Échanger le code et récupérer l'ID
+                token_data = async_to_sync(self.oauth_service._exchange_github_code)(
+                    code, client_id, client_secret
+                )
+                
+                if not token_data:
+                    return Response(
+                        {'error': 'Failed to verify GitHub account'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                
+                user_info = async_to_sync(self.oauth_service._get_github_user_info)(
+                    token_data['access_token']
+                )
+                
+                if not user_info:
+                    return Response(
+                        {'error': 'Failed to get GitHub user info'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                
+                provider_id = str(user_info['id'])
+            
+            else:
+                return Response(
+                    {'error': 'Invalid provider'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Lier le provider
+            success = async_to_sync(self.oauth_service.link_oauth_provider)(
+                user_id, provider, provider_id
+            )
+            
+            if not success:
+                return Response(
+                    {'error': 'Failed to link OAuth provider'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            return Response({
+                'message': f'{provider} account linked successfully'
+            }, status=status.HTTP_200_OK)
+            
+        except ValueError as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            logger.error(f"Link OAuth error: {str(e)}")
+            return Response(
+                {'error': 'Failed to link OAuth provider'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class UnlinkOAuthView(APIView):
+    """Vue pour délier un provider OAuth"""
+    
+    permission_classes = [IsAuthenticated]
+    
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.oauth_service = OAuthService()
+    
+    def post(self, request):
+        """Délier un provider OAuth"""
+        try:
+            user_id = str(request.user.id)
+            
+            success = async_to_sync(self.oauth_service.unlink_oauth_provider)(user_id)
+            
+            if not success:
+                return Response(
+                    {'error': 'Failed to unlink OAuth provider'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            return Response({
+                'message': 'OAuth provider unlinked successfully'
+            }, status=status.HTTP_200_OK)
+            
+        except ValueError as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            logger.error(f"Unlink OAuth error: {str(e)}")
+            return Response(
+                {'error': 'Failed to unlink OAuth provider'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )

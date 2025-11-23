@@ -9,8 +9,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import lombok.Getter;
-import lombok.Setter;
+
 
 
 
@@ -20,8 +19,6 @@ import lombok.Setter;
     @Index(name = "idx_student_status", columnList = "studentId, status")
 })
 @Data
-@Getter
-@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor

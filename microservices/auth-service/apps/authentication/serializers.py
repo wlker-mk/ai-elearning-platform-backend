@@ -137,3 +137,23 @@ class LoginHistorySerializer(serializers.Serializer):
     browser = serializers.CharField(allow_null=True)
     os = serializers.CharField(allow_null=True)
     login_at = serializers.DateTimeField(source='loginAt', read_only=True)
+
+
+# ============ OAuth Serializers ============
+
+class GoogleOAuthSerializer(serializers.Serializer):
+    """Serializer pour l'authentification Google OAuth"""
+    code = serializers.CharField()
+    redirect_uri = serializers.CharField()
+
+
+class GitHubOAuthSerializer(serializers.Serializer):
+    """Serializer pour l'authentification GitHub OAuth"""
+    code = serializers.CharField()
+
+
+class LinkOAuthSerializer(serializers.Serializer):
+    """Serializer pour lier un provider OAuth"""
+    provider = serializers.ChoiceField(choices=['GOOGLE', 'GITHUB'])
+    code = serializers.CharField()
+    redirect_uri = serializers.CharField(required=False)
