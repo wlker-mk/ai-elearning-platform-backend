@@ -1,6 +1,7 @@
+from decouple import config
 from .base import *
 
-DEBUG = True
+DEBUG = True # Enable debug mode for development
 
 ALLOWED_HOSTS = ['*']
 
