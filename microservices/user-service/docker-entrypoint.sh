@@ -20,8 +20,6 @@ echo '✅ PostgreSQL is available'
 echo '📋 Applying Prisma migrations...'
 prisma migrate deploy
 
-echo '📋 Applying Django migrations...'
-python manage.py migrate
-
+# ⚠️ ASSUREZ-VOUS QUE CETTE LIGNE EST PRÉSENTE :
 echo '🎯 Starting Django server on port 8002...'
 exec python manage.py runserver 0.0.0.0:8002

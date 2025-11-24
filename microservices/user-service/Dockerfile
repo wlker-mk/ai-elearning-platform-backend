@@ -1,4 +1,3 @@
-# Dockerfile
 FROM python:3.11-slim
 
 WORKDIR /app
@@ -12,9 +11,7 @@ RUN apt-get update && apt-get install -y \
 
 # Install Python dependencies
 COPY requirements.txt .
-# Upgrade pip and install dependencies in one layer
-RUN pip install --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Install Prisma
 RUN pip install prisma
@@ -25,13 +22,14 @@ COPY . .
 # Create logs directory
 RUN mkdir -p /app/logs
 
+# Make entrypoint executable
+RUN chmod +x docker-entrypoint.sh
 
 # Generate Prisma client
-
 RUN prisma generate
 
 # Expose port
 EXPOSE 8002
 
-# Start with simple Python command (plus fiable)
+# Start the application
 CMD ["python", "manage.py", "runserver", "0.0.0.0:8002"]

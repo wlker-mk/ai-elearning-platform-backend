@@ -49,8 +49,9 @@ class ProfileUpdateSerializer(serializers.Serializer):
     last_name = serializers.CharField(max_length=100, required=False)
     phone_number = serializers.CharField(required=False, allow_null=True)
     date_of_birth = serializers.DateField(required=False, allow_null=True)
-    profile_image_url = serializers.URLField()  # URL S3/Cloudinary
-    cover_image_url = serializers.URLField()
+    # CORRECTION : Ajouter required=False
+    profile_image_url = serializers.URLField(required=False, allow_null=True)
+    cover_image_url = serializers.URLField(required=False, allow_null=True)
     bio = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     website = serializers.URLField(required=False, allow_null=True)
     linkedin = serializers.URLField(required=False, allow_null=True)

@@ -472,7 +472,7 @@ pyjwt[crypto]==2.6.0 # Pour JWT
 
 ### 1. Inscription
 ```http
-POST /api/auth/register/
+POST http://localhost:8001/api/auth/register/
 Content-Type: application/json
 
 {

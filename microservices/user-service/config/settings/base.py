@@ -307,6 +307,11 @@ LOGGING = {
         },
     },
 }
+# MANQUANT dans config/settings/base.py
+STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 # Security Settings
 if not DEBUG:

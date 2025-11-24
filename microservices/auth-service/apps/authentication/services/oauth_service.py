@@ -1,7 +1,4 @@
-"""
-Service OAuth pour Google et GitHub
-Fichier: apps/authentication/services/oauth_service.py
-"""
+
 from typing import Optional, Dict, Any, Tuple
 from datetime import datetime
 import httpx

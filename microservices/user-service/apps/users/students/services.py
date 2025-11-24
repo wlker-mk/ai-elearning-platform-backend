@@ -1,7 +1,6 @@
 from typing import Optional, Dict, Any, List
 from datetime import datetime, timedelta
-from prisma import Prisma
-
+from shared.shared.utils.prisma_client import get_prisma_client, disconnect_prisma
 import logging
 import random
 import string
@@ -13,15 +12,15 @@ class StudentService:
     """Service pour gérer les étudiants"""
     
     def __init__(self):
-        self.db = Prisma()
+        self.db = None
     
     async def connect(self):
-        if not self.db.is_connected():
-            await self.db.connect()
+        """Connexion via singleton"""
+        self.db = await get_prisma_client()
     
     async def disconnect(self):
-        if self.db.is_connected():
-            await self.db.disconnect()
+        """Ne plus déconnecter individuellement"""
+        pass  # Géré par le singleton
     
     def generate_student_code(self) -> str:
         """Générer un code étudiant unique"""
@@ -37,8 +36,14 @@ class StudentService:
             # Générer un code étudiant unique
             student_code = self.generate_student_code()
             
-            # Vérifier l'unicité
-            while await self.db.student.find_unique(where={'studentCode': student_code}):
+            # Vérifier l'unicité avec retry
+            max_retries = 5
+            for _ in range(max_retries):
+                existing = await self.db.student.find_unique(
+                    where={'studentCode': student_code}
+                )
+                if not existing:
+                    break
                 student_code = self.generate_student_code()
             
             student_data = {
@@ -58,11 +63,11 @@ class StudentService:
             
             student = await self.db.student.create(data=student_data)
             
-            logger.info(f"Étudiant créé pour l'utilisateur: {user_id} avec le code: {student_code}")
+            logger.info(f"Student created for user: {user_id} with code: {student_code}")
             return student
 
         except Exception as e:
-            logger.error(f"Erreur lors de la création de l'étudiant: {str(e)}")
+            logger.error(f"Error creating student: {str(e)}", exc_info=True)
             raise
         finally:
             await self.disconnect()

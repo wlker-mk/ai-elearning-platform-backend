@@ -3,37 +3,44 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from asgiref.sync import async_to_sync
-
-"""
-Vues OAuth pour Google et GitHub
-Ajout dans: apps/authentication/views.py
-"""
 from django.conf import settings
 import logging
 
-from apps.authentication.services import OAuthService, SessionService, LoginHistoryService
-from apps.authentication.serializers import (
-    GoogleOAuthSerializer,
-    GitHubOAuthSerializer,
-    LinkOAuthSerializer,
-    UserSerializer
-)
-
-
-
+# Import des services
 from apps.authentication.services import (
     UserService,
     SessionService,
     MFAService,
-    LoginHistoryService
+    LoginHistoryService,
+    OAuthService
 )
-from apps.authentication.serializers import *
+
+# Import des sérialiseurs
+from apps.authentication.serializers import (
+    RegisterSerializer,
+    LoginSerializer,
+    MFALoginSerializer,
+    RefreshTokenSerializer,
+    VerifyEmailSerializer,
+    RequestPasswordResetSerializer,
+    ResetPasswordSerializer,
+    ChangePasswordSerializer,
+    UserSerializer,
+    VerifyMFASerializer,
+    DisableMFASerializer,
+    SessionSerializer,
+    LoginHistorySerializer,
+    GoogleOAuthSerializer,
+    GitHubOAuthSerializer,
+    LinkOAuthSerializer
+)
+
 from shared.shared.utils.ip_utils import get_client_ip, get_user_agent
 from shared.shared.utils.email_utils import send_verification_email, send_password_reset_email
 from shared.shared.exceptions import *
 
 logger = logging.getLogger(__name__)
-import logging
+
 
 class HealthCheckView(APIView):
     """Vue pour le health check"""
@@ -907,6 +914,11 @@ class LoginStatisticsView(APIView):
             )
             
             
+
+
+# ============ OAuth Views ============
+
+
 class GoogleOAuthView(APIView):
     """Vue pour l'authentification Google OAuth"""
     
