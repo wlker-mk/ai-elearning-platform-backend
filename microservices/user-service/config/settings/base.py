@@ -14,10 +14,9 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,0.0.0.0,backend,user-service', cast=lambda v: [s.strip() for s in v.split(',')])
 
+# APPLICATIONS CONFIGURÉES POUR ÉVITER LES CONFLITS AVEC PRISMA
 INSTALLED_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
+    # Applications Django essentielles (sans conflits de base de données)
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
@@ -27,7 +26,6 @@ INSTALLED_APPS = [
     'corsheaders',
     'django_filters',
     'django_celery_results',
-    'rest_framework_simplejwt',
     
     # Local apps
     'apps.users',
@@ -35,8 +33,9 @@ INSTALLED_APPS = [
     'apps.users.instructors',
     'apps.users.profiles',
 ]
-#
-AUTH_USER_MODEL = 'users.User'
+
+# ⚠️ COMENTÉ - En conflit avec Prisma
+# AUTH_USER_MODEL = 'users.User'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -44,7 +43,6 @@ MIDDLEWARE = [
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -60,7 +58,6 @@ TEMPLATES = [
             'context_processors': [
                 'django.template.context_processors.debug',
                 'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
             ],
         },
@@ -82,7 +79,7 @@ if DATABASE_URL:
             'PASSWORD': parsed_url.password or config('POSTGRES_PASSWORD', default='postgres'),
             'HOST': parsed_url.hostname or config('POSTGRES_HOST', default='postgres'),
             'PORT': str(parsed_url.port) if parsed_url.port else config('POSTGRES_PORT', default='5432'),
-            'CONN_MAX_AGE': 600,  # Optimisé pour les connexions persistantes
+            'CONN_MAX_AGE': 600,
         }
     }
 else:
@@ -98,36 +95,13 @@ else:
         }
     }
 
-# Password validation (renforcée pour user-service)
-AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-        'OPTIONS': {
-            'user_attributes': ('username', 'email', 'first_name', 'last_name'),
-            'max_similarity': 0.7,
-        }
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-        'OPTIONS': {
-            'min_length': 8,
-        }
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
-]
+# ⚠️ COMENTÉ - En conflit avec l'authentification Django
+# AUTH_PASSWORD_VALIDATORS = []
 
-# REST Framework Configuration (optimisé pour user-service)
+# REST Framework Configuration (sans authentification Django)
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ],
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
+        'rest_framework.permissions.AllowAny',  # Temporaire pour tests
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': config('DEFAULT_PAGE_SIZE', default=20, cast=int),
@@ -148,47 +122,29 @@ REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_RATES': {
         'anon': '100/hour',
         'user': '1000/hour',
-        'login': '10/minute',  # Protection contre le brute force
     }
 }
 
-# Simple JWT Configuration (optimisé pour la sécurité)
-SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(
-        minutes=config('JWT_ACCESS_TOKEN_LIFETIME', default='15', cast=int)
-    ),
-    'REFRESH_TOKEN_LIFETIME': timedelta(
-        days=config('JWT_REFRESH_TOKEN_LIFETIME', default=7, cast=int)
-    ),
-    'ROTATE_REFRESH_TOKENS': True,
-    'BLACKLIST_AFTER_ROTATION': True,
-    'UPDATE_LAST_LOGIN': True,
-    'ALGORITHM': config('JWT_ALGORITHM', default='HS256'),
-    'SIGNING_KEY': config('JWT_SECRET_KEY', default=SECRET_KEY),
-    'VERIFYING_KEY': None,
-    'AUDIENCE': None,
-    'ISSUER': None,
-    'JWK_URL': None,
-    'LEEWAY': 0,
-    'AUTH_HEADER_TYPES': ('Bearer',),
-    'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
-    'USER_ID_FIELD': 'id',
-    'USER_ID_CLAIM': 'user_id',
-    'USER_AUTHENTICATION_RULE': 'rest_framework_simplejwt.authentication.default_user_authentication_rule',
-    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
-    'TOKEN_TYPE_CLAIM': 'token_type',
-    'TOKEN_USER_CLASS': 'rest_framework_simplejwt.models.TokenUser',
-    'JTI_CLAIM': 'jti',
-    'SLIDING_TOKEN_REFRESH_EXP_CLAIM': 'refresh_exp',
-    'SLIDING_TOKEN_LIFETIME': timedelta(minutes=5),
-    'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=1),
-}
+# ⚠️ COMENTÉ - En conflit avec l'authentification Django
+# SIMPLE_JWT = {}
 
 # CORS Configuration
 CORS_ALLOW_ALL_ORIGINS = config('CORS_ALLOW_ALL_ORIGINS', default=False, cast=bool)
-CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='http://localhost:3000,http://127.0.0.1:3000', cast=lambda v: [s.strip() for s in v.split(',')] if v else [])
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",      # ← AJOUTER (Vite dev server)
+    "http://127.0.0.1:5173",   
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://frontend:3000",
+]
 CORS_ALLOW_CREDENTIALS = True
-CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='', cast=lambda v: [s.strip() for s in v.split(',')] if v else [])
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173",      # ← AJOUTER
+    "http://127.0.0.1:5173", 
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://frontend:3000",
+]
 CORS_ALLOW_METHODS = [
     'DELETE',
     'GET',
@@ -203,8 +159,6 @@ LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
-
-
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -224,7 +178,7 @@ CELERY_TASK_ROUTES = {
     'apps.users.tasks.process_user_upload': {'queue': 'media'},
 }
 
-# Cache Configuration (optimisé pour user-service)
+# Cache Configuration
 CACHES = {
     'default': {
         'BACKEND': 'django_redis.cache.RedisCache',
@@ -234,15 +188,11 @@ CACHES = {
             'COMPRESSOR': 'django_redis.compressors.zlib.ZlibCompressor',
         },
         'KEY_PREFIX': 'user_service',
-        'TIMEOUT': 300,  # 5 minutes pour les données utilisateur fréquentes
+        'TIMEOUT': 300,
     }
 }
 
-# Session Configuration (si nécessaire pour l'admin)
-SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'
-SESSION_CACHE_ALIAS = 'default'
-
-# Logging Configuration (enrichi pour user-service)
+# Logging Configuration
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -253,10 +203,6 @@ LOGGING = {
         },
         'simple': {
             'format': '{levelname} {message}',
-            'style': '{',
-        },
-        'user_audit': {
-            'format': '{asctime} - {levelname} - user_id:{user_id} - action:{action} - ip:{ip_address} - {message}',
             'style': '{',
         },
     },
@@ -278,12 +224,6 @@ LOGGING = {
             'filename': str(LOG_DIR / 'error.log'),
             'formatter': 'verbose',
         },
-        'audit_file': {
-            'level': 'INFO',
-            'class': 'logging.FileHandler',
-            'filename': str(LOG_DIR / 'audit.log'),
-            'formatter': 'user_audit',
-        },
     },
     'root': {
         'handlers': ['console', 'file', 'error_file'],
@@ -296,18 +236,14 @@ LOGGING = {
             'propagate': False,
         },
         'apps.users': {
-            'handlers': ['console', 'file', 'error_file', 'audit_file'],
+            'handlers': ['console', 'file', 'error_file'],
             'level': config('LOG_LEVEL', default='DEBUG'),
-            'propagate': False,
-        },
-        'audit': {
-            'handlers': ['audit_file'],
-            'level': 'INFO',
             'propagate': False,
         },
     },
 }
-# MANQUANT dans config/settings/base.py
+
+# Static files
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = '/media/'
@@ -320,14 +256,14 @@ if not DEBUG:
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
-    SECURE_HSTS_SECONDS = 31536000  # 1 year
+    SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
 
-# Custom settings pour user-service
+# Custom settings
 APPEND_SLASH = True
-DATA_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10MB - suffisant pour user-service
-FILE_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10MB - pour les avatars utilisateurs
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10485760
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10485760
 
 # User-service specific settings
 USERNAME_MIN_LENGTH = 3
@@ -336,7 +272,7 @@ PASSWORD_MIN_LENGTH = 8
 MAX_LOGIN_ATTEMPTS = 5
 LOGIN_TIMEOUT_MINUTES = 15
 
-# Email settings (pour les notifications utilisateur)
+# Email settings
 EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
 EMAIL_HOST = config('EMAIL_HOST', default='')
 EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
